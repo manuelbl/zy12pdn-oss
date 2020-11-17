@@ -1,0 +1,5 @@
+BasedOnStyle: WebKit
+
+ColumnLimit: 120
+IndentWidth: 4
+ContinuationIndentWidth: 4
