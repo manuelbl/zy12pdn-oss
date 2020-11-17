@@ -280,6 +280,22 @@ enum class reg_interrupt : uint8_t {
 };
 USB_PD_ADD_BITMAKS_OPS(reg_interrupt)
 
+/// Tokens used in FUSB302B FIFO
+enum class token : uint8_t {
+    txon = 0xa1,
+    sop1 = 0x12,
+    sop2 = 0x13,
+    sop3 = 0x1b,
+    reset1 = 0x15,
+    reset2 = 0x16,
+    packsym = 0x80,
+    jam_crc = 0xff,
+    eop = 0x14,
+    txoff = 0xfe
+};
+
+constexpr uint8_t operator*(token tok) { return static_cast<uint8_t>(tok); }
+
 } // namespace usb_pd
 
 #endif

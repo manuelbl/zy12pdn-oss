@@ -25,14 +25,12 @@ void pd_sink::init()
     DEBUG_LOG("\r\n", 0);
 
     pd_controller.start_sink();
-    update_attach_state();
+    update_protocol();
 }
 
 void pd_sink::stop() { pd_controller.stop(); }
 
-void pd_sink::set_attach_state_changed_callback(attach_state_changed_callback cb) { attach_state_changed_cb = cb; }
-
-void pd_sink::set_source_caps_changed_callback(source_caps_changed_callback cb) { source_caps_changed_cb = cb; }
+void pd_sink::set_event_callback(event_callback cb) { event_callback_ = cb; }
 
 void pd_sink::poll()
 {
@@ -41,12 +39,13 @@ void pd_sink::poll()
 
         if (!pd_controller.has_event())
             return;
+
         event evt = pd_controller.pop_event();
 
         switch (evt.kind) {
         case event_kind::state_changed:
-            if (update_attach_state() && attach_state_changed_cb != nullptr)
-                attach_state_changed_cb();
+            if (update_protocol())
+                notify(callback_event::protocol_changed);
             break;
         case event_kind::message_received:
             handle_msg(evt.msg_header, evt.msg_payload);
@@ -63,6 +62,21 @@ void pd_sink::handle_msg(uint16_t header, const uint8_t* payload)
     switch (type) {
     case pd_msg_type::data_source_capabilities:
         handle_src_cap_msg(header, payload);
+        break;
+    case pd_msg_type::ctrl_accept:
+        notify(callback_event::power_accepted);
+        break;
+    case pd_msg_type::ctrl_reject:
+        requested_voltage = 0;
+        requested_max_current = 0;
+        notify(callback_event::power_rejected);
+        break;
+    case pd_msg_type::ctrl_ps_ready:
+        active_voltage = requested_voltage;
+        active_max_current = requested_max_current;
+        requested_voltage = 0;
+        requested_max_current = 0;
+        notify(callback_event::power_ready);
         break;
     default:
         break;
@@ -99,21 +113,22 @@ void pd_sink::handle_src_cap_msg(uint16_t header, const uint8_t* payload)
         payload += 4;
     }
 
-    if (source_caps_changed_cb != nullptr)
-        source_caps_changed_cb();
+    notify(callback_event::source_caps_changed);
 }
 
-bool pd_sink::update_attach_state()
+bool pd_sink::update_protocol()
 {
     bool needs_notify = true;
 
-    fusb302_state state = pd_controller.attach_state();
+    fusb302_state state = pd_controller.state();
     switch (state) {
     case fusb302_state::usb_20:
-        attach_state_ = pd_attach_state::usb_20;
+        protocol_ = pd_protocol::usb_20;
+        active_voltage = 5000;
+        active_voltage = 500;
         break;
     case fusb302_state::usb_pd:
-        attach_state_ = pd_attach_state::usb_pd;
+        protocol_ = pd_protocol::usb_pd;
         break;
     default:
         needs_notify = false;
@@ -148,6 +163,16 @@ void pd_sink::request_power(int voltage, int max_current)
 
     // Send message
     pd_controller.send_message(header, payload);
+
+    requested_voltage = voltage;
+    requested_max_current = max_current;
+}
+
+void pd_sink::notify(callback_event event)
+{
+    if (event_callback_ == nullptr)
+        return;
+    event_callback_(event);
 }
 
 } // namespace usb_pd

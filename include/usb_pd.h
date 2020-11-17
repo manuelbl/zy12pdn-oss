@@ -13,6 +13,7 @@
 
 namespace usb_pd {
 
+/// USB PD message type
 enum class pd_msg_type : uint8_t {
     ctrl_good_crc = 0x01,
     ctrl_goto_min = 0x02,
@@ -49,6 +50,7 @@ enum class pd_msg_type : uint8_t {
 
 constexpr uint8_t operator*(pd_msg_type msg_type) { return static_cast<uint8_t>(msg_type); }
 
+/// Helper class to constrcut and decode USB PD message headers
 struct pd_header {
     static bool has_extended(uint16_t header) { return (header & 0x8000) != 0; }
     static int num_data_objs(uint16_t header) { return (header >> 12) & 0x07; }
@@ -63,21 +65,6 @@ struct pd_header {
         return ((num_data_objs & 0x07) << 12) | (*msg_type & 0x1f) | 0x40;
     }
 };
-
-enum class token : uint8_t {
-    txon = 0xa1,
-    sop1 = 0x12,
-    sop2 = 0x13,
-    sop3 = 0x1b,
-    reset1 = 0x15,
-    reset2 = 0x16,
-    packsym = 0x80,
-    jam_crc = 0xff,
-    eop = 0x14,
-    txoff = 0xfe
-};
-
-constexpr uint8_t operator*(token tok) { return static_cast<uint8_t>(tok); }
 
 } // namespace usb_pd
 

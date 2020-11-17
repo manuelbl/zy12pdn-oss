@@ -26,7 +26,7 @@ mcu_hal usb_pd::hal;
 
 pd_sink power_sink;
 
-void attach_state_changed();
+void sink_callback(usb_pd::callback_event event);
 void source_caps_changed();
 void loop();
 void test_for_debugger();
@@ -48,8 +48,7 @@ int main()
 
     swd::init_monitoring(power_sink);
 
-    power_sink.set_attach_state_changed_callback(attach_state_changed);
-    power_sink.set_source_caps_changed_callback(source_caps_changed);
+    power_sink.set_event_callback(sink_callback);
     power_sink.init();
 
     while (!swd::activity_detected())
@@ -81,16 +80,23 @@ void firmware_loop()
     }
 }
 
-void attach_state_changed()
+void sink_callback(usb_pd::callback_event event)
 {
 #if defined(PD_DEBUG)
-    int index = static_cast<int>(power_sink.attach_state());
-    const char* const state_names[] = { "disabled", "unattached", "attached" };
+    int index = static_cast<int>(event);
+    const char* const event_names[] = { "protocol_changed", "source_caps_changed", "power_accepted", "power_rejected", "power_ready" };
+
+    DEBUG_LOG("Event: ", 0);
+    DEBUG_LOG(event_names[index], 0);
+    DEBUG_LOG("\r\n", 0);
 #endif
 
-    DEBUG_LOG("New state: ", 0);
-    DEBUG_LOG(state_names[index], 0);
-    DEBUG_LOG("\r\n", 0);
+    if (event == callback_event::source_caps_changed)
+        source_caps_changed();
+
+    if (event == callback_event::power_ready) {
+        DEBUG_LOG("Voltage: %d\r\n", power_sink.active_voltage);
+    }
 }
 
 void source_caps_changed()

@@ -57,7 +57,7 @@ void fusb302::init()
 
     next_message_id = 0;
     is_in_debounce_timeout = false;
-    state = fusb302_state::usb_20;
+    state_ = fusb302_state::usb_20;
     events.clear();
 }
 
@@ -84,7 +84,7 @@ void fusb302::start_sink()
     // Enable interrupt (disable global interrupt mask) and default
     write_register(reg::control0, *reg_control0::host_cur_usb_def);
 
-    state = fusb302_state::usb_20;
+    state_ = fusb302_state::usb_20;
 }
 
 void fusb302::poll()
@@ -170,10 +170,10 @@ void fusb302::check_for_msg()
 
 void fusb302::update_state()
 {
-    fusb302_state old_state = state;
+    fusb302_state old_state = state_;
     int cc = toggle_state();
 
-    switch (state) {
+    switch (state_) {
     case fusb302_state::usb_20:
         if (cc != 0) {
             establish_usb_pd_wait();
@@ -191,7 +191,7 @@ void fusb302::update_state()
         break;
     }
 
-    if (old_state != state)
+    if (old_state != state_)
         events.add_item(event(event_kind::state_changed));
 }
 
@@ -224,15 +224,16 @@ void fusb302::establish_usb_pd_wait()
     // Disable global interrupt mask
     write_register(reg::control0, *reg_control0::none);
 
-    state = fusb302_state::usb_pd_wait;
+    state_ = fusb302_state::usb_pd_wait;
     start_debounce_timeout(200);
 }
 
 void fusb302::establish_usb_pd()
 {
-    if (state == fusb302_state::usb_pd)
+    if (state_ == fusb302_state::usb_pd)
         return;
-    state = fusb302_state::usb_pd;
+
+    state_ = fusb302_state::usb_pd;
     cancel_debounce();
     DEBUG_LOG("USB PD comm\r\n", 0);
     events.add_item(event(event_kind::state_changed));

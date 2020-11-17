@@ -19,7 +19,7 @@
 
 namespace usb_pd {
 
-/// Protocol state
+/// FUSB302 state
 enum class fusb302_state : uint8_t { usb_20, usb_pd_wait, usb_pd };
 
 /// Event kind
@@ -98,8 +98,8 @@ struct fusb302 {
      */
     void poll();
 
-    /// Gets the current attachment state.
-    fusb302_state attach_state() { return state; }
+    /// Gets the current protocol state.
+    fusb302_state state() { return state_; }
 
     /**
      * Sends a message with the given header and payload.
@@ -164,7 +164,7 @@ private:
     queue<event, 6> events;
 
     /// Current attachment state
-    fusb302_state state = fusb302_state::usb_20;
+    fusb302_state state_ = fusb302_state::usb_20;
 
     /// ID for next USB PD message
     int next_message_id = 0;
