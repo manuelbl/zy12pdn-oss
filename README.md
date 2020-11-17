@@ -1,4 +1,6 @@
-# Open-Source Firmware for ZY12PDN USB Power Delivery Trigger
+# Open-Source Firmware for ZY12PDN USB-PD
+
+Open-source firmware for USB Power Delivery trigger board based on an FUSB302B power delivery controller and a STM32F030F4 MCU.
 
 ![ZY12PDN board](doc/board.jpg)
 
@@ -19,6 +21,7 @@ Connect the SWD pads with an ST-Link, J-Link or Black Magic Probe to your comput
 
 In most cases, you will need to try twice since the board does not enable the SWD pins quickly enough.
 
+
 ## Supported PD Messages
 
  - *Capabilities*: The source announces the supported voltages. The sink must immediately request one of the voltages.
@@ -26,6 +29,7 @@ In most cases, you will need to try twice since the board does not enable the SW
  - *Accept*: The source confirms the requested voltage. The new voltage is not ready yet.
  - *Reject*: The source rejects the requested voltage.
  - *PS_RDY*: The source indicates that the request voltage has been applied.
+
 
 ## Notes
 
@@ -35,6 +39,8 @@ In most cases, you will need to try twice since the board does not enable the SW
 - The firmware does not properly work with Apple's 87W USB-C Power Adapter. It eventually works but the voltage is cut for a short time and reapplied. The firmware reboots and after that is occupied with endless interrupts. 
 - Using the build flag `-D PD_DEBUG`, debugging output can be enabled. In order to see it, you have to solder a wire to PA2 (USART2 TX pin) and connect it to a serial adapter. The baud rate is 115,200 bps.
 - All the code is very timing sensitive. Be very careful with debugging output in the `source_caps_changed` callback. It the debugging output takes too long, the USB power supply will likely reset and even cut the power.
+- The FUSB302B chip can monitor VBUS. However, the pin is not connected. So the firmware must derive the voltage from the USB PD messages (mainly *Request* and *PS_RDY*).
+
 
 ## Firmware Mode
 
