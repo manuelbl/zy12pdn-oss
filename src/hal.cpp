@@ -30,6 +30,9 @@ constexpr uint16_t led_green_pin = GPIO6;
 constexpr auto led_blue_port = GPIOA;
 constexpr uint16_t led_blue_pin = GPIO7;
 
+constexpr auto button_port = GPIOF;
+constexpr uint16_t button_pin = GPIO1;
+
 static i2c_bit_bang i2c;
 
 static volatile uint32_t millis_count;
@@ -39,7 +42,7 @@ void mcu_hal::init()
     rcc_clock_setup_in_hsi_out_48mhz();
 
     rcc_periph_clock_enable(RCC_GPIOA);
-    rcc_periph_clock_enable(RCC_GPIOB);
+    rcc_periph_clock_enable(RCC_GPIOF);
 
     // Initialize systick (nterrupt every 1ms)
     systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
@@ -57,6 +60,10 @@ void mcu_hal::init()
     gpio_mode_setup(fusb302_int_n_port, GPIO_MODE_INPUT, GPIO_PUPD_NONE, fusb302_int_n_pin);
 
     i2c.init();
+
+    // Initialize button
+    gpio_mode_setup(button_port, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, button_pin);
+    is_button_down = true;
 }
 
 void mcu_hal::pd_ctrl_read(uint8_t reg, int data_len, uint8_t* data)
@@ -115,7 +122,25 @@ void mcu_hal::update_led()
     }
 }
 
-void mcu_hal::poll() { update_led(); }
+bool mcu_hal::has_button_been_pressed()
+{
+    if (is_button_down)
+        return false; // button still down
+
+    is_button_down = gpio_get(button_port, button_pin) != 0;
+    return is_button_down;
+}
+
+bool mcu_hal::is_button_held_down() { return is_button_down; }
+
+void mcu_hal::poll()
+{
+    update_led();
+
+    // check for button release
+    if (is_button_down)
+        is_button_down = gpio_get(button_port, button_pin) != 0;
+}
 
 uint32_t mcu_hal::millis() { return millis_count; }
 

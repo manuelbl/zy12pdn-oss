@@ -81,7 +81,27 @@ struct mcu_hal {
     void set_led(color c, uint32_t on = 0, uint32_t off = 0);
 
     /**
-     * Call this function frequently to update the LED state.
+     * Returns whether button has been pressed.
+     * 
+     * It will return 'true' once and then return 'false' until
+     * button has been released and pressed again.
+     * 
+     * @return `true` if button has been pressed
+     */
+    bool has_button_been_pressed();
+
+    /**
+     * Returns if the button is being held down.
+     * 
+     * Can be used to check for long press.
+     * 
+     * @return `true` if button is being held down.
+     */
+    bool is_button_held_down();
+
+    /**
+     * Call this function frequently to update the LED state
+     * and handle button presses.
      */
     void poll();
 
@@ -114,6 +134,7 @@ private:
     uint32_t led_off;
     bool is_led_on;
     uint32_t led_timeout;
+    bool is_button_down;
 };
 
 extern mcu_hal hal;

@@ -19,6 +19,8 @@ mcu_hal usb_pd::hal;
 
 pd_sink power_sink;
 
+uint8_t col = 6;
+
 void sink_callback(callback_event event);
 void source_caps_changed();
 void loop();
@@ -47,6 +49,13 @@ void loop()
 {
     hal.poll();
     power_sink.poll();
+
+    if (hal.has_button_been_pressed()) {
+        col++;
+        if (col >= 7)
+            col = 1;
+        hal.set_led(static_cast<color>(col));
+    }
 }
 
 void firmware_loop()
