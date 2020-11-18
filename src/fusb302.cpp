@@ -43,9 +43,8 @@ void fusb302::init()
     write_register(reg::reset, *(reg_reset::sw_res | reg_reset::pd_reset));
     hal.delay(10);
 
-    // power up everyting
-    write_register(reg::power,
-        *(reg_power::pwr_bandgap | reg_power::pwr_measure | reg_power::pwr_receiver | reg_power::pwr_int_osc));
+    // power up everyting except oscillator
+    write_register(reg::power, *(reg_power::pwr_all & ~reg_power::pwr_int_osc));
     // Disable all CC monitoring
     write_register(reg::switches0, *reg_switches0::none);
     // Mask all interrupts
@@ -117,6 +116,10 @@ void fusb302::check_for_interrupts()
     }
     if (*(interrupta & reg_interrupta::i_txsent) != 0) {
         DEBUG_LOG("TX ack\r\n", 0);
+        // turn of internal oscillator if TX FIFO is empty
+        reg_status1 status1 = static_cast<reg_status1>(read_register(reg::status1));
+        if (*(status1 & reg_status1::tx_empty) != 0)
+            write_register(reg::power, *(reg_power::pwr_all & ~reg_power::pwr_int_osc));
     }
     if (*(interrupt & reg_interrupt::i_activity) != 0) {
         may_have_message = true;
@@ -315,6 +318,9 @@ void fusb302::send_header_message(pd_msg_type msg_type)
 
 void fusb302::send_message(uint16_t header, const uint8_t* payload)
 {
+    // Enable internal oscillator
+    write_register(reg::power, *reg_power::pwr_all);
+
     header |= (next_message_id << 8);
     int payload_len = pd_header::num_data_objs(header) * 4;
 

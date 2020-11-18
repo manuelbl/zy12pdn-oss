@@ -179,6 +179,7 @@ USB_PD_ADD_BITMAKS_OPS(reg_mask)
 /// FUSB302 register POWER values
 enum class reg_power : uint8_t {
     pwr_mask = 0x0f << 0,
+    pwr_all = 0x0f << 0,
     pwr_int_osc = 0x01 << 3,
     pwr_receiver = 0x01 << 2,
     pwr_measure = 0x01 << 1,
