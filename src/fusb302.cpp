@@ -71,7 +71,7 @@ void fusb302::start_sink()
     // Put FUSB302 in toggling mode (sink only)
 
     // Mask all interrupts except for bc_lvl
-    write_register(reg::maska, *(reg_mask::m_all & ~reg_mask::m_bc_lvl));
+    write_register(reg::mask, *(reg_mask::m_all & ~reg_mask::m_bc_lvl));
     // Mask all interrupts except for toggle done
     write_register(reg::maska, *(reg_maska::m_all & ~reg_maska::m_togdone));
     // BMC threshold: 1.35V with a threshold of 85mV
@@ -116,7 +116,7 @@ void fusb302::check_for_interrupts()
     }
     if (*(interrupta & reg_interrupta::i_txsent) != 0) {
         DEBUG_LOG("TX ack\r\n", 0);
-        // turn of internal oscillator if TX FIFO is empty
+        // turn off internal oscillator if TX FIFO is empty
         reg_status1 status1 = static_cast<reg_status1>(read_register(reg::status1));
         if (*(status1 & reg_status1::tx_empty) != 0)
             write_register(reg::power, *(reg_power::pwr_all & ~reg_power::pwr_int_osc));
@@ -125,11 +125,11 @@ void fusb302::check_for_interrupts()
         may_have_message = true;
     }
     if (*(interrupt & reg_interrupt::i_crc_chk) != 0) {
-        DEBUG_LOG("%lu: CRC ok\r\n", hal.millis());
+        //DEBUG_LOG("%lu: CRC ok\r\n", hal.millis());
         may_have_message = true;
     }
     if (*(interruptb & reg_interruptb::i_gcrcsent) != 0) {
-        DEBUG_LOG("Good CRC sent\r\n", 0);
+        //DEBUG_LOG("Good CRC sent\r\n", 0);
         may_have_message = true;
     }
     if (*(interrupta & reg_interrupta::i_togdone) != 0) {
