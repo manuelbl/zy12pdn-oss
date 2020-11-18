@@ -15,6 +15,19 @@
 
 namespace usb_pd {
 
+enum class color {
+    white = 0b000,
+    yellow = 0b001,
+    purple = 0b010,
+    red = 0b011,
+    cyan = 0b100,
+    green = 0b101,
+    blue = 0b110,
+    off = 0b111
+};
+
+inline uint8_t operator*(color c) { return static_cast<uint8_t>(c); }
+
 /**
  * Hardware abstraction layer.
  *
@@ -56,6 +69,23 @@ struct mcu_hal {
     bool is_interrupt_asserted();
 
     /**
+     * Sets the LED color and blink pattern.
+     *
+     * If the LED is not supposed to blink, specify 0 for both
+     * 'on' and 'off'.
+     *
+     * @param c color
+     * @param on blink on duration (in ms)
+     * @param off blink off duration (in ms)
+     */
+    void set_led(color c, uint32_t on = 0, uint32_t off = 0);
+
+    /**
+     * Call this function frequently to update the LED state.
+     */
+    void poll();
+
+    /**
      * Returns time stamp.
      *
      * @return number of milliseconds since a fixed time in the past.
@@ -75,6 +105,15 @@ struct mcu_hal {
      * @return 'true' if it has been reached or passed, 'false' otherwise
      */
     bool has_expired(uint32_t timeout);
+
+private:
+    void update_led();
+
+    color led_color;
+    uint32_t led_on;
+    uint32_t led_off;
+    bool is_led_on;
+    uint32_t led_timeout;
 };
 
 extern mcu_hal hal;

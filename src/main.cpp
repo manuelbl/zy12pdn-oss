@@ -15,36 +15,21 @@
 
 using namespace usb_pd;
 
-constexpr auto led_red_port = GPIOA;
-constexpr uint16_t led_red_pin = GPIO5;
-constexpr auto led_green_port = GPIOA;
-constexpr uint16_t led_green_pin = GPIO6;
-constexpr auto led_blue_port = GPIOA;
-constexpr uint16_t led_blue_pin = GPIO7;
-
 mcu_hal usb_pd::hal;
 
 pd_sink power_sink;
 
-void sink_callback(usb_pd::callback_event event);
+void sink_callback(callback_event event);
 void source_caps_changed();
 void loop();
 void test_for_debugger();
 void firmware_loop();
 
-static uint32_t last_blink = hal.millis();
-
 int main()
 {
     hal.init();
+    hal.set_led(color::blue, 800, 600);
     DEBUG_INIT();
-
-    gpio_mode_setup(led_red_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, led_red_pin);
-    gpio_set(led_red_port, led_red_pin);
-    gpio_mode_setup(led_green_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, led_green_pin);
-    gpio_set(led_green_port, led_green_pin);
-    gpio_mode_setup(led_blue_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, led_blue_pin);
-    gpio_set(led_blue_port, led_blue_pin);
 
     swd::init_monitoring(power_sink);
 
@@ -53,38 +38,36 @@ int main()
 
     while (!swd::activity_detected())
         loop();
+
     firmware_loop();
     return 0;
 }
 
 void loop()
 {
-    uint32_t diff = hal.millis() - last_blink;
-    if (diff > 500) {
-        gpio_toggle(led_blue_port, led_blue_pin);
-        last_blink += 500;
-    }
-
+    hal.poll();
     power_sink.poll();
 }
 
 void firmware_loop()
 {
+    hal.set_led(color::red, 100, 100);
+
     // Restore SWD pins so firmware can be uploaded
     swd::restore();
 
     // Fast blinking red color
     while (true) {
-        gpio_toggle(led_red_port, led_red_pin);
-        hal.delay(100);
+        hal.poll();
     }
 }
 
-void sink_callback(usb_pd::callback_event event)
+void sink_callback(callback_event event)
 {
 #if defined(PD_DEBUG)
     int index = static_cast<int>(event);
-    const char* const event_names[] = { "protocol_changed", "source_caps_changed", "power_accepted", "power_rejected", "power_ready" };
+    const char* const event_names[]
+        = { "protocol_changed", "source_caps_changed", "power_accepted", "power_rejected", "power_ready" };
 
     DEBUG_LOG("Event: ", 0);
     DEBUG_LOG(event_names[index], 0);

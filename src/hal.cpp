@@ -23,6 +23,13 @@ constexpr auto fusb302_int_n_port = GPIOA;
 constexpr uint16_t fusb302_int_n_pin = GPIO13;
 constexpr uint8_t fusb302_i2c_addr = 0x22;
 
+constexpr auto led_red_port = GPIOA;
+constexpr uint16_t led_red_pin = GPIO5;
+constexpr auto led_green_port = GPIOA;
+constexpr uint16_t led_green_pin = GPIO6;
+constexpr auto led_blue_port = GPIOA;
+constexpr uint16_t led_blue_pin = GPIO7;
+
 static i2c_bit_bang i2c;
 
 static volatile uint32_t millis_count;
@@ -40,6 +47,13 @@ void mcu_hal::init()
     systick_interrupt_enable();
     systick_counter_enable();
 
+    // Initialize LED
+    gpio_mode_setup(led_red_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, led_red_pin);
+    gpio_mode_setup(led_green_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, led_green_pin);
+    gpio_mode_setup(led_blue_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, led_blue_pin);
+    set_led(color::blue);
+
+    // Initialize interrupt
     gpio_mode_setup(fusb302_int_n_port, GPIO_MODE_INPUT, GPIO_PUPD_NONE, fusb302_int_n_pin);
 
     i2c.init();
@@ -60,6 +74,48 @@ void mcu_hal::pd_ctrl_write(uint8_t reg, int data_len, const uint8_t* data, bool
 }
 
 bool mcu_hal::is_interrupt_asserted() { return gpio_get(fusb302_int_n_port, fusb302_int_n_pin) == 0; }
+
+void mcu_hal::set_led(color c, uint32_t on, uint32_t off)
+{
+    if ((*c & 0b100) != 0)
+        gpio_set(led_red_port, led_red_pin);
+    else
+        gpio_clear(led_red_port, led_red_pin);
+
+    if ((*c & 0b010) != 0)
+        gpio_set(led_green_port, led_green_pin);
+    else
+        gpio_clear(led_green_port, led_green_pin);
+
+    if ((*c & 0b001) != 0)
+        gpio_set(led_blue_port, led_blue_pin);
+    else
+        gpio_clear(led_blue_port, led_blue_pin);
+
+    led_color = c;
+    led_on = on;
+    led_off = off;
+    is_led_on = true;
+    led_timeout = millis() + (off != 0 ? on : 0x7fffffff);
+}
+
+void mcu_hal::update_led()
+{
+    if (!has_expired(led_timeout))
+        return;
+
+    if (is_led_on && led_off != 0) {
+        gpio_set(led_red_port, led_red_pin);
+        gpio_set(led_green_port, led_green_pin);
+        gpio_set(led_blue_port, led_blue_pin);
+        is_led_on = false;
+        led_timeout += led_off;
+    } else {
+        set_led(led_color, led_on, led_off);
+    }
+}
+
+void mcu_hal::poll() { update_led(); }
 
 uint32_t mcu_hal::millis() { return millis_count; }
 
