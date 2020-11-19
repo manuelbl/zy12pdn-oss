@@ -60,3 +60,12 @@ Currently, SWCLK is initially configured as input with an external interrupt. If
 If you know of a better approach to detect a debugger, let me know.
 
 SWD can be used to upload new firmware. But debugging is not possible as – in normal operation – the SWDIO pin is used as the interrupt pin.
+
+
+## Acknowledgements
+
+Thanks to the people that have also analzed the ZY12PDN board and contributed to this work:
+
+- Alex Whittemore: [Notes on USB PD Triggers (and ZY12PDN Instructions)](https://www.alexwhittemore.com/notes-on-usb-pd-triggers-and-zy12pdn-instructions/) and [ZY12PDN Reverse Engineering Part 1](https://www.alexwhittemore.com/zy12pdn-reverse-engineering-part-1/).
+- Brian Lough: [Powering your projects uing USB-C Power Delivery (YouTube)](https://www.youtube.com/watch?v=iumAnPiQSj8)
+- *OxPeter* and *MarkOlsson* on further people on [Brian Lough's Discord Channel](https://discord.gg/nnezpvq)
