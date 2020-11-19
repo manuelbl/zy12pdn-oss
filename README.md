@@ -42,7 +42,6 @@ See [Hardware](doc/hardware.md) for a detailled description of the board and its
 
 - If the event type of the `pd_sink` callback is `callback_event::source_caps_changed`, `request_power()` must be called to request a voltage -- even if it is 5V. Otherwise the source is likely to reset.
 - The firmware is currently limited to the fixed voltages. Additionally capabilities (variable voltages etc.) can be easily added.
-- The firmware does not properly work with Apple's 87W USB-C Power Adapter. It eventually works but the voltage is cut for a short time and reapplied. The firmware reboots and after that is occupied with endless interrupts. 
 - Using the build flag `-D PD_DEBUG`, debugging output can be enabled. In order to see it, you have to solder a wire to PA2 (USART2 TX pin) and connect it to a serial adapter. The baud rate is 115,200 bps.
 - All the code is very timing sensitive. Be very careful with debugging output in the `source_caps_changed` callback. It the debugging output takes too long, the USB power supply will likely reset and even cut the power.
 
