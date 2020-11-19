@@ -63,7 +63,7 @@ void mcu_hal::init()
 
     // Initialize button
     gpio_mode_setup(button_port, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, button_pin);
-    is_button_down = true;
+    is_button_down = false;
 }
 
 void mcu_hal::pd_ctrl_read(uint8_t reg, int data_len, uint8_t* data)
@@ -127,7 +127,7 @@ bool mcu_hal::has_button_been_pressed()
     if (is_button_down)
         return false; // button still down
 
-    is_button_down = gpio_get(button_port, button_pin) != 0;
+    is_button_down = gpio_get(button_port, button_pin) == 0;
     return is_button_down;
 }
 
@@ -139,7 +139,7 @@ void mcu_hal::poll()
 
     // check for button release
     if (is_button_down)
-        is_button_down = gpio_get(button_port, button_pin) != 0;
+        is_button_down = gpio_get(button_port, button_pin) == 0;
 }
 
 uint32_t mcu_hal::millis() { return millis_count; }
