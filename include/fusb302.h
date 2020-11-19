@@ -167,7 +167,7 @@ private:
     fusb302_state state_ = fusb302_state::usb_20;
 
     /// ID for next USB PD message
-    int next_message_id = 0;
+    uint16_t next_message_id = 0;
 };
 
 } // namespace usb_pd

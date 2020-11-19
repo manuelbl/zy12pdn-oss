@@ -125,11 +125,11 @@ void fusb302::check_for_interrupts()
         may_have_message = true;
     }
     if (*(interrupt & reg_interrupt::i_crc_chk) != 0) {
-        //DEBUG_LOG("%lu: CRC ok\r\n", hal.millis());
+        // DEBUG_LOG("%lu: CRC ok\r\n", hal.millis());
         may_have_message = true;
     }
     if (*(interruptb & reg_interruptb::i_gcrcsent) != 0) {
-        //DEBUG_LOG("Good CRC sent\r\n", 0);
+        // DEBUG_LOG("Good CRC sent\r\n", 0);
         may_have_message = true;
     }
     if (*(interrupta & reg_interrupta::i_togdone) != 0) {
@@ -321,8 +321,8 @@ void fusb302::send_message(uint16_t header, const uint8_t* payload)
     // Enable internal oscillator
     write_register(reg::power, *reg_power::pwr_all);
 
-    header |= (next_message_id << 8);
     int payload_len = pd_header::num_data_objs(header) * 4;
+    header |= (next_message_id << 9);
 
     uint8_t buf[40];
 

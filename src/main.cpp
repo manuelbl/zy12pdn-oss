@@ -19,10 +19,11 @@ mcu_hal usb_pd::hal;
 
 pd_sink power_sink;
 
-uint8_t col = 6;
+uint8_t selected_cap = 0;
 
 void sink_callback(callback_event event);
-void source_caps_changed();
+void update_led();
+void switch_voltage();
 void loop();
 void test_for_debugger();
 void firmware_loop();
@@ -50,11 +51,24 @@ void loop()
     hal.poll();
     power_sink.poll();
 
-    if (hal.has_button_been_pressed()) {
-        col++;
-        if (col >= 7)
-            col = 1;
-        hal.set_led(static_cast<color>(col));
+    if (hal.has_button_been_pressed())
+        switch_voltage();
+}
+
+void switch_voltage()
+{
+    if (power_sink.protocol() != pd_protocol::usb_pd)
+        return;
+
+    while (true) {
+        selected_cap++;
+        if (selected_cap >= power_sink.num_source_caps)
+            selected_cap = 0;
+        if (power_sink.source_caps[selected_cap].supply_type != pd_supply_type::fixed)
+            continue;
+        power_sink.request_power(
+            power_sink.source_caps[selected_cap].voltage, power_sink.source_caps[selected_cap].max_current);
+        break;
     }
 }
 
@@ -83,28 +97,57 @@ void sink_callback(callback_event event)
     DEBUG_LOG("\r\n", 0);
 #endif
 
-    if (event == callback_event::source_caps_changed)
-        source_caps_changed();
+    switch (event) {
+    case callback_event::source_caps_changed:
+        DEBUG_LOG("Caps changed\r\n", 0);
+        selected_cap = 0;
+        power_sink.request_power(power_sink.source_caps[0].voltage, power_sink.source_caps[0].max_current);
+        break;
 
-    if (event == callback_event::power_ready) {
+    case callback_event::power_ready:
         DEBUG_LOG("Voltage: %d\r\n", power_sink.active_voltage);
+        break;
+
+    case callback_event::protocol_changed:
+        if (power_sink.protocol() == pd_protocol::usb_20)
+            selected_cap = 0;
+        break;
+
+    default:
+        break;
     }
+
+    update_led();
 }
 
-void source_caps_changed()
+void update_led()
 {
-    DEBUG_LOG("Caps changed\r\n", 0);
-
-    int voltage = 5000;
-    int current = 500;
-
-    // If available, select 9V at 1500mA
-    for (int i = 0; i < power_sink.num_source_caps; i++) {
-        if (power_sink.source_caps[i].voltage == 9000 && power_sink.source_caps[i].max_current >= 1500) {
-            voltage = 9000;
-            current = 1500;
-        }
+    if (power_sink.protocol() == pd_protocol::usb_20) {
+        hal.set_led(color::blue, 800, 600);
+        return;
     }
 
-    power_sink.request_power(voltage, current);
+    color c = color::red;
+    int blink = 0;
+    switch (power_sink.active_voltage) {
+    case 5000:
+        c = color::red;
+        break;
+    case 9000:
+        c = color::yellow;
+        break;
+    case 12000:
+        c = color::green;
+        break;
+    case 15000:
+        c = color::cyan;
+        break;
+    case 20000:
+        c = color::blue;
+        break;
+    default:
+        blink = 200;
+    }
+
+    hal.set_led(c, blink, blink);
 }
