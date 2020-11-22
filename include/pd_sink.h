@@ -62,7 +62,19 @@ struct pd_sink {
 
     void poll();
 
-    void request_power(int voltage, int max_current);
+    /**
+     * Requests the specified voltage from the source.
+     *
+     * The source will respond with `accepted` and `ps_ready` (if successful)
+     * or `rejected` if unsucessful. Separate events will be triggered for these
+     * messages.
+     * 
+     * If the source hasn't advertised the selected message, no request is sent.
+     *
+     * @param voltage the desired voltage (in mV)
+     * @param max_current the desired maximum current (in mA), or 0 for the source's maximum current
+     */
+    void request_power(int voltage, int max_current = 0);
 
     /// Active power delivery protocol
     pd_protocol protocol() { return protocol_; }
@@ -83,7 +95,7 @@ struct pd_sink {
     uint16_t active_voltage = 5000;
 
     /// Active maximum current (in mA)
-    uint16_t active_max_current = 500;
+    uint16_t active_max_current = 900;
 
 private:
     void handle_msg(uint16_t header, const uint8_t* payload);

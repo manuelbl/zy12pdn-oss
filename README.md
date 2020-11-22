@@ -29,6 +29,27 @@ In most cases, you will need to try twice since the board does not enable the SW
 See [Hardware](doc/hardware.md) for a detailled description of the board and its components (incl. schematic).
 
 
+## Usage Instructions
+
+The user interface – if it can be called so – is similar to the original ZY12PDN. It can be configured to work in one of several modes:
+
+| LED    | Voltage |Mode |
+|--------|-----|----|
+| Red    | 5V  | By pressing the button, the board switches between all available voltages (in increasing order and the starting over at 5V) |
+| Yellow | 9V  | 9V if available, 5V otherwise |
+| Green  | 12V | 12V if available, 5V otherwise. Note: Few  power supllies support 12V. |
+| Cyan   | 15V | 15V if availabke, 5V otherwise |
+| Blue   | 20V | 20V if available, 20V otherwise |
+| Purple | –   | The maximum voltage is selected |
+
+
+Except when configuring the board, the LED color indicates the voltage. If the board has been configured for a fixed voltage and the voltage is not available, the LED will slowly flash in red.
+
+### Configuring the Board
+
+The configuration mode is entered by plugging in the board while pressing the button. The LED will flash quickly in cyan until the button is released. By pressing the button, the mode is switch. The output voltage remains at 5V. To save the configuration, the button is pressed for a longer time until the LED goes off.
+
+
 ## Supported PD Messages
 
  - *Capabilities*: The source announces the supported voltages. The sink must immediately request one of the voltages.

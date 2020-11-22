@@ -210,6 +210,7 @@ void fusb302::establish_usb_20()
     cancel_debounce();
     init();
     start_sink();
+    events.add_item(event(event_kind::state_changed));
 }
 
 void fusb302::establish_usb_pd_wait()

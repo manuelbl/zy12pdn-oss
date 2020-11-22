@@ -125,7 +125,7 @@ bool pd_sink::update_protocol()
     case fusb302_state::usb_20:
         protocol_ = pd_protocol::usb_20;
         active_voltage = 5000;
-        active_voltage = 500;
+        active_voltage = 900;
         num_source_caps = 0;
         break;
     case fusb302_state::usb_pd:
@@ -142,9 +142,14 @@ void pd_sink::request_power(int voltage, int max_current)
 {
     // Lookup object position by voltage
     int obj_pos = -1;
-    for (int i = 0; i < num_source_caps; i++)
-        if (source_caps[i].voltage == voltage)
+    for (int i = 0; i < num_source_caps; i++) {
+        if (source_caps[i].voltage == voltage) {
             obj_pos = source_caps[i].obj_pos;
+            if (max_current == 0)
+                max_current = source_caps[i].max_current;
+        }
+    }
+
     if (obj_pos == -1) {
         DEBUG_LOG("Invalid power requested", 0);
         return; // no match

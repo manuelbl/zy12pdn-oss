@@ -8,33 +8,58 @@
 
 #include <libopencm3/stm32/gpio.h>
 
+#include "eeprom.h"
 #include "hal.h"
 #include "pd_debug.h"
 #include "pd_sink.h"
 #include "swd.h"
 
+#include <algorithm>
+
 using namespace usb_pd;
+
+constexpr uint16_t nvs_voltage_key = 0;
 
 mcu_hal usb_pd::hal;
 
-pd_sink power_sink;
+static pd_sink power_sink;
 
-uint8_t selected_cap = 0;
+static eeprom nvs;
 
-void sink_callback(callback_event event);
-void update_led();
-void switch_voltage();
-void loop();
-void test_for_debugger();
-void firmware_loop();
+static uint8_t selected_capability = 0;
+
+// Modes:
+// 0: voltage selectable by button
+// 100: maximum voltage
+// others: voltage in V
+static uint16_t desired_mode = 0;
+
+static void sink_callback(callback_event event);
+static void update_led();
+static void switch_voltage();
+static void on_source_caps_changed();
+static void loop();
+static void programming_mode();
+static void set_led_prog_mode(int mode);
+static void save_mode(int mode);
+static void firmware_loop();
 
 int main()
 {
     hal.init();
     hal.set_led(color::blue, 800, 600);
+    nvs.init(3);
     DEBUG_INIT();
 
+    if (hal.has_button_been_pressed())
+        programming_mode();
+
     swd::init_monitoring(power_sink);
+
+    if (!nvs.read(nvs_voltage_key, &desired_mode))
+        desired_mode = 0;
+
+    DEBUG_LOG("Saved mode: %d\r\n", desired_mode);
 
     power_sink.set_event_callback(sink_callback);
     power_sink.init();
@@ -51,7 +76,7 @@ void loop()
     hal.poll();
     power_sink.poll();
 
-    if (hal.has_button_been_pressed())
+    if (desired_mode == 0 && hal.has_button_been_pressed())
         switch_voltage();
 }
 
@@ -61,27 +86,13 @@ void switch_voltage()
         return;
 
     while (true) {
-        selected_cap++;
-        if (selected_cap >= power_sink.num_source_caps)
-            selected_cap = 0;
-        if (power_sink.source_caps[selected_cap].supply_type != pd_supply_type::fixed)
+        selected_capability++;
+        if (selected_capability >= power_sink.num_source_caps)
+            selected_capability = 0;
+        if (power_sink.source_caps[selected_capability].supply_type != pd_supply_type::fixed)
             continue;
-        power_sink.request_power(
-            power_sink.source_caps[selected_cap].voltage, power_sink.source_caps[selected_cap].max_current);
+        power_sink.request_power(power_sink.source_caps[selected_capability].voltage);
         break;
-    }
-}
-
-void firmware_loop()
-{
-    hal.set_led(color::red, 100, 100);
-
-    // Restore SWD pins so firmware can be uploaded
-    swd::restore();
-
-    // Fast blinking red color
-    while (true) {
-        hal.poll();
     }
 }
 
@@ -100,8 +111,7 @@ void sink_callback(callback_event event)
     switch (event) {
     case callback_event::source_caps_changed:
         DEBUG_LOG("Caps changed\r\n", 0);
-        selected_cap = 0;
-        power_sink.request_power(power_sink.source_caps[0].voltage, power_sink.source_caps[0].max_current);
+        on_source_caps_changed();
         break;
 
     case callback_event::power_ready:
@@ -110,7 +120,7 @@ void sink_callback(callback_event event)
 
     case callback_event::protocol_changed:
         if (power_sink.protocol() == pd_protocol::usb_20)
-            selected_cap = 0;
+            selected_capability = 0;
         break;
 
     default:
@@ -120,15 +130,35 @@ void sink_callback(callback_event event)
     update_led();
 }
 
-void update_led()
+void on_source_caps_changed()
 {
-    if (power_sink.protocol() == pd_protocol::usb_20) {
-        hal.set_led(color::blue, 800, 600);
-        return;
+    int voltage = 5000;
+
+    if (desired_mode == 0) {
+        // Use first advertised voltage
+        selected_capability = 0;
+        voltage = power_sink.source_caps[0].voltage;
+
+    } else if (desired_mode == 100) {
+        // Take maximum voltage
+        for (int i = 0; i < power_sink.num_source_caps; i++)
+            voltage = std::max(voltage, static_cast<int>(power_sink.source_caps[i].voltage));
+
+    } else {
+        // Search for desried voltage (if not found -> 5V)
+        for (int i = 0; i < power_sink.num_source_caps; i++) {
+            if (power_sink.source_caps[i].voltage == desired_mode * 1000)
+                voltage = power_sink.source_caps[i].voltage;
+        }
     }
 
+    power_sink.request_power(voltage);
+}
+
+void update_led()
+{
     color c = color::red;
-    int blink = 0;
+    int flash_duration = 0;
     switch (power_sink.active_voltage) {
     case 5000:
         c = color::red;
@@ -146,8 +176,86 @@ void update_led()
         c = color::blue;
         break;
     default:
-        blink = 200;
+        flash_duration = 200;
     }
 
-    hal.set_led(c, blink, blink);
+    if (power_sink.protocol() == pd_protocol::usb_20) {
+        flash_duration = 600;
+    } else if (desired_mode != 0 && desired_mode != 100 && power_sink.active_voltage != 1000 * desired_mode) {
+        flash_duration = 1000;
+    }
+
+    hal.set_led(c, flash_duration, flash_duration);
+}
+
+void programming_mode()
+{
+    int mode = 0;
+    hal.set_led(color::cyan, 70, 70);
+    while (hal.is_button_held_down())
+        hal.poll();
+
+    uint32_t button_pressed_time = 0;
+    bool is_button_pressed = false;
+    set_led_prog_mode(mode);
+
+    while (true) {
+        hal.poll();
+        if (hal.has_button_been_pressed()) {
+            // Button pressed -> record time
+            button_pressed_time = hal.millis();
+            is_button_pressed = true;
+
+        } else if (is_button_pressed) {
+            if (!hal.is_button_held_down()) {
+                // Button has been released
+                is_button_pressed = false;
+                uint32_t duration = hal.millis() - button_pressed_time;
+
+                if (duration < 500) {
+                    // Button has been pressed for a short time -> switch to next mode
+                    mode++;
+                    if (mode > 5)
+                        mode = 0;
+                    set_led_prog_mode(mode);
+
+                } else {
+                    // Button has been pressed for a long time -> save selected voltage
+                    save_mode(mode);
+                }
+            } else if (hal.has_expired(button_pressed_time + 1000)) {
+                // Button has been pressed for a long time -> save selected voltage
+                save_mode(mode);
+            }
+        }
+    }
+}
+
+void set_led_prog_mode(int mode)
+{
+    const color colors[] = { color::red, color::yellow, color::green, color::cyan, color::blue, color::purple };
+    hal.set_led(colors[mode]);
+}
+
+void save_mode(int mode)
+{
+    const uint16_t voltages[] = { 0, 9, 12, 15, 20, 100 };
+    nvs.write(nvs_voltage_key, voltages[mode]);
+    hal.set_led(color::off);
+
+    while (true)
+        ; // end of program
+}
+
+void firmware_loop()
+{
+    hal.set_led(color::blue, 100, 100);
+
+    // Restore SWD pins so firmware can be uploaded
+    swd::restore();
+
+    // Fast flashing red color
+    while (true) {
+        hal.poll();
+    }
 }

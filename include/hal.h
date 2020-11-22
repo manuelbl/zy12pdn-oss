@@ -69,14 +69,14 @@ struct mcu_hal {
     bool is_interrupt_asserted();
 
     /**
-     * Sets the LED color and blink pattern.
+     * Sets the LED color and flash pattern.
      *
-     * If the LED is not supposed to blink, specify 0 for both
+     * If the LED is not supposed to flash, specify 0 for both
      * 'on' and 'off'.
      *
      * @param c color
-     * @param on blink on duration (in ms)
-     * @param off blink off duration (in ms)
+     * @param on flash on duration (in ms)
+     * @param off flash off duration (in ms)
      */
     void set_led(color c, uint32_t on = 0, uint32_t off = 0);
 
