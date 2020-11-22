@@ -20,7 +20,16 @@
 namespace usb_pd {
 
 /// FUSB302 state
-enum class fusb302_state : uint8_t { usb_20, usb_pd_wait, usb_pd };
+enum class fusb302_state : uint8_t {
+    /// VBUS is present, no activity on CC1/CC2
+    usb_20,
+    /// Activity on CC1/CC2, waiting to receive USB PD messages
+    usb_pd_wait,
+    /// No USB PD messages received, sent 'Get_Source_Cap' messages
+    usb_pd_wait_2,
+    /// Successful USB PD communication established
+    usb_pd
+};
 
 /// Event kind
 enum class event_kind : uint8_t { none, state_changed, message_received };
@@ -124,6 +133,7 @@ private:
     void check_for_msg();
     void establish_usb_20();
     void establish_usb_pd_wait();
+    void establish_usb_pd_wait_2();
     void establish_usb_pd();
 
     /// Update the state based on the FUSB302 status

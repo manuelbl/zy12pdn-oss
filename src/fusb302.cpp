@@ -15,7 +15,6 @@
 
 #include "hal.h"
 #include "pd_debug.h"
-#include "usb_pd.h"
 
 namespace usb_pd {
 
@@ -108,7 +107,8 @@ void fusb302::check_for_interrupts()
 
     if (*(interrupta & reg_interrupta::i_hardrst) != 0) {
         DEBUG_LOG("%lu: Hard Reset\r\n", hal.millis());
-        needs_state_update = true;
+        establish_usb_20();
+        return;
     }
     if (*(interrupta & reg_interrupta::i_retryfail) != 0) {
         DEBUG_LOG("Retry failed\r\n", 0);
@@ -185,6 +185,12 @@ void fusb302::update_state()
 
     case fusb302_state::usb_pd_wait:
         if (!is_in_debounce_timeout) {
+            establish_usb_pd_wait_2();
+        }
+        break;
+
+    case fusb302_state::usb_pd_wait_2:
+        if (!is_in_debounce_timeout) {
             DEBUG_LOG("Fallback to USB 2.0\r\n", 0);
             establish_usb_20();
         }
@@ -229,6 +235,15 @@ void fusb302::establish_usb_pd_wait()
 
     state_ = fusb302_state::usb_pd_wait;
     start_debounce_timeout(200);
+}
+
+void fusb302::establish_usb_pd_wait_2()
+{
+    state_ = fusb302_state::usb_pd_wait_2;
+    start_debounce_timeout(200);
+
+    // Send Get_Source_Cap message
+    send_header_message(pd_msg_type::ctrl_get_source_cap);
 }
 
 void fusb302::establish_usb_pd()
