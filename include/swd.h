@@ -16,11 +16,11 @@ extern "C" void exti4_15_isr();
 
 namespace usb_pd {
 
-struct pd_sink;
+typedef void (*stop_f)();
 
 struct swd {
     /// Setup monitoring for SWCLK activity
-    static void init_monitoring(pd_sink& sink);
+    static void init_monitoring(stop_f stop);
 
     /// Restore SWD pins
     static void restore();
@@ -30,7 +30,7 @@ struct swd {
 
 private:
     static bool activity_detected_;
-    static pd_sink* sink_;
+    static stop_f stop_f_;
 
     friend void ::exti4_15_isr();
 };

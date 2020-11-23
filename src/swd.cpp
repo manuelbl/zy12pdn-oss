@@ -16,7 +16,6 @@
 #include <libopencm3/stm32/gpio.h>
 
 #include "pd_debug.h"
-#include "pd_sink.h"
 
 namespace usb_pd {
 
@@ -27,11 +26,11 @@ constexpr uint16_t swclk_pin = GPIO14;
 constexpr uint32_t swclk_exti = EXTI14;
 
 bool swd::activity_detected_ = false;
-pd_sink* swd::sink_ = nullptr;
+stop_f swd::stop_f_ = nullptr;
 
-void swd::init_monitoring(pd_sink& sink)
+void swd::init_monitoring(stop_f stop)
 {
-    sink_ = &sink;
+    stop_f_ = stop;
 
     // Configure SWCLK as input with external interup.
     // If activity is detected, the SWD is restored
@@ -47,7 +46,7 @@ void swd::init_monitoring(pd_sink& sink)
 
 void swd::restore()
 {
-    sink_->stop();
+    stop_f_();
 
     // restore SWD
     gpio_set_af(swclk_port, GPIO_AF0, swclk_pin);

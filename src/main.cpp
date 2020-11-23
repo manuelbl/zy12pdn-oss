@@ -39,7 +39,7 @@ static void update_led();
 static void switch_voltage();
 static void on_source_caps_changed();
 static void loop();
-static void programming_mode();
+static void configuration_mode();
 static void set_led_prog_mode(int mode);
 static void save_mode(int mode);
 static void firmware_loop();
@@ -51,11 +51,13 @@ int main()
     nvs.init(3);
     DEBUG_INIT();
 
+    // Enter configuration mode if button is being pressed on power up
     if (hal.has_button_been_pressed())
-        programming_mode();
+        configuration_mode();
 
-    swd::init_monitoring(power_sink);
+    swd::init_monitoring([]{ power_sink.stop(); });
 
+    // Read the configured mode
     if (!nvs.read(nvs_voltage_key, &desired_mode))
         desired_mode = 0;
 
@@ -64,6 +66,7 @@ int main()
     power_sink.set_event_callback(sink_callback);
     power_sink.init();
 
+    // Work in regular loop until SWD activity is detected
     while (!swd::activity_detected())
         loop();
 
@@ -71,17 +74,21 @@ int main()
     return 0;
 }
 
+// Regular operations loop
 void loop()
 {
     hal.poll();
     power_sink.poll();
 
+    // In mode 0, the button switches the voltage
     if (desired_mode == 0 && hal.has_button_been_pressed())
         switch_voltage();
 }
 
+// Change the voltage to the next source capability
 void switch_voltage()
 {
+    // Only works with USB PD
     if (power_sink.protocol() != pd_protocol::usb_pd)
         return;
 
@@ -89,13 +96,18 @@ void switch_voltage()
         selected_capability++;
         if (selected_capability >= power_sink.num_source_caps)
             selected_capability = 0;
+
+        // Skip all source capabilities except fixed sources
         if (power_sink.source_caps[selected_capability].supply_type != pd_supply_type::fixed)
             continue;
+
+        // Request the new source capability
         power_sink.request_power(power_sink.source_caps[selected_capability].voltage);
         break;
     }
 }
 
+// Called when the USB PD controller triggers an event
 void sink_callback(callback_event event)
 {
 #if defined(PD_DEBUG)
@@ -130,6 +142,9 @@ void sink_callback(callback_event event)
     update_led();
 }
 
+// Called when the source advertises new capabilities
+// Be careful with debug output. If one of the capbilities is not
+// requested in time, the power suplly will reset.
 void on_source_caps_changed()
 {
     int voltage = 5000;
@@ -157,6 +172,7 @@ void on_source_caps_changed()
 
 void update_led()
 {
+    // LED colors indicates voltage
     color c = color::red;
     int flash_duration = 0;
     switch (power_sink.active_voltage) {
@@ -179,6 +195,7 @@ void update_led()
         flash_duration = 200;
     }
 
+    // In USB 2.0 mode or if the voltage is different from the desired one, flash the LED
     if (power_sink.protocol() == pd_protocol::usb_20) {
         flash_duration = 600;
     } else if (desired_mode != 0 && desired_mode != 100 && power_sink.active_voltage != 1000 * desired_mode) {
@@ -188,19 +205,21 @@ void update_led()
     hal.set_led(c, flash_duration, flash_duration);
 }
 
-void programming_mode()
+void configuration_mode()
 {
-    int mode = 0;
+    // Wait until button has been released
     hal.set_led(color::cyan, 70, 70);
     while (hal.is_button_held_down())
         hal.poll();
 
+    int mode = 0;
     uint32_t button_pressed_time = 0;
     bool is_button_pressed = false;
     set_led_prog_mode(mode);
 
     while (true) {
         hal.poll();
+
         if (hal.has_button_been_pressed()) {
             // Button pressed -> record time
             button_pressed_time = hal.millis();
@@ -231,12 +250,14 @@ void programming_mode()
     }
 }
 
+// Set LED color for selected mode
 void set_led_prog_mode(int mode)
 {
     const color colors[] = { color::red, color::yellow, color::green, color::cyan, color::blue, color::purple };
     hal.set_led(colors[mode]);
 }
 
+// Save selected mode in non-volatile storage
 void save_mode(int mode)
 {
     const uint16_t voltages[] = { 0, 9, 12, 15, 20, 100 };
@@ -247,6 +268,7 @@ void save_mode(int mode)
         ; // end of program
 }
 
+// Firmware mode: restore SWD pins and flash LED
 void firmware_loop()
 {
     hal.set_led(color::blue, 100, 100);
