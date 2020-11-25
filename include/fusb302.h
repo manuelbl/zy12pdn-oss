@@ -164,8 +164,10 @@ private:
     /// Time when the current timer expires
     uint32_t timeout_expiration;
 
+    constexpr static int num_message_buf = 4;
+
     /// Messages buffers
-    uint8_t message_buf[64][4];
+    uint8_t message_buf[64][num_message_buf];
 
     /// Next message index
     int message_index = 0;

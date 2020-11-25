@@ -172,6 +172,8 @@ void fusb302::check_for_msg()
             establish_usb_pd();
             events.add_item(event(header, payload));
             message_index++;
+            if (message_index >= num_message_buf)
+                message_index = 0;
         }
     }
 }
