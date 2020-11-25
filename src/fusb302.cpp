@@ -71,7 +71,7 @@ void fusb302::start_sink()
 
     // Mask all interrupts except for bc_lvl
     write_register(reg::mask, *(reg_mask::m_all & ~reg_mask::m_bc_lvl));
-    // Unmask all interrupts (toggle done, hard reset sent, hard reset, tx sent etc.)
+    // Unmask all interrupts (toggle done, hard reset, tx sent etc.)
     write_register(reg::maska, *reg_maska::m_none);
     // BMC threshold: 1.35V with a threshold of 85mV
     write_register(reg::slice, *reg_slice::sdac_hys_085mv | 0x20);
@@ -107,11 +107,6 @@ void fusb302::check_for_interrupts()
 
     if (*(interrupta & reg_interrupta::i_hardrst) != 0) {
         DEBUG_LOG("%lu: Hard reset\r\n", hal.millis());
-        establish_usb_20();
-        return;
-    }
-    if (*(interrupta & reg_interrupta::i_hardsent) != 0) {
-        DEBUG_LOG("%lu: Hard reset sent\r\n", hal.millis());
         establish_usb_20();
         return;
     }
@@ -192,7 +187,7 @@ void fusb302::update_state(bool timeout_ended)
 
     case fusb302_state::usb_pd_wait:
         if (timeout_ended) {
-            send_hard_reset();
+            establish_usb_20();
         }
         break;
 
@@ -236,13 +231,6 @@ void fusb302::establish_usb_pd_wait()
 
     state_ = fusb302_state::usb_pd_wait;
     start_timeout(200);
-}
-
-void fusb302::send_hard_reset()
-{
-    write_register(reg::control3, *reg_control3::send_hard_reset);
-    state_ = fusb302_state::hard_reset_sent;
-    start_timeout(5);
 }
 
 void fusb302::establish_usb_pd()

@@ -26,9 +26,7 @@ enum class fusb302_state : uint8_t {
     /// Activity on CC1/CC2, waiting to receive USB PD messages
     usb_pd_wait,
     /// Successful USB PD communication established
-    usb_pd,
-    /// Hard reset has been sent
-    hard_reset_sent
+    usb_pd
 };
 
 /// Event kind
@@ -134,7 +132,6 @@ private:
     void establish_usb_20();
     void establish_usb_pd_wait();
     void establish_usb_pd();
-    void send_hard_reset();
 
     /// Update the state based on the FUSB302 status
     void update_state(bool timeout_ended);

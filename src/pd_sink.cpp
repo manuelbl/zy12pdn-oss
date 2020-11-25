@@ -118,24 +118,18 @@ void pd_sink::handle_src_cap_msg(uint16_t header, const uint8_t* payload)
 
 bool pd_sink::update_protocol()
 {
-    bool needs_notify = true;
+    auto old_protocol = protocol_;
 
-    fusb302_state state = pd_controller.state();
-    switch (state) {
-    case fusb302_state::usb_20:
+    if (pd_controller.state() == fusb302_state::usb_pd) {
+        protocol_ = pd_protocol::usb_pd;
+    } else {
         protocol_ = pd_protocol::usb_20;
         active_voltage = 5000;
         active_voltage = 900;
         num_source_caps = 0;
-        break;
-    case fusb302_state::usb_pd:
-        protocol_ = pd_protocol::usb_pd;
-        break;
-    default:
-        needs_notify = false;
     }
 
-    return needs_notify;
+    return protocol_ != old_protocol;
 }
 
 void pd_sink::request_power(int voltage, int max_current)
