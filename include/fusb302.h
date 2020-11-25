@@ -25,10 +25,10 @@ enum class fusb302_state : uint8_t {
     usb_20,
     /// Activity on CC1/CC2, waiting to receive USB PD messages
     usb_pd_wait,
-    /// No USB PD messages received, sent 'Get_Source_Cap' messages
-    usb_pd_wait_2,
     /// Successful USB PD communication established
-    usb_pd
+    usb_pd,
+    /// Hard reset has been sent
+    hard_reset_sent
 };
 
 /// Event kind
@@ -133,18 +133,18 @@ private:
     void check_for_msg();
     void establish_usb_20();
     void establish_usb_pd_wait();
-    void establish_usb_pd_wait_2();
     void establish_usb_pd();
+    void send_hard_reset();
 
     /// Update the state based on the FUSB302 status
-    void update_state();
+    void update_state(bool timeout_ended);
 
     /// Gets what CC line has activity (if any)
     int toggle_state();
 
-    bool has_debounce_ended();
-    void start_debounce_timeout(uint32_t ms);
-    void cancel_debounce();
+    bool has_timeout_expired();
+    void start_timeout(uint32_t ms);
+    void cancel_timeout();
 
     /// Retrieves the received message from the FIFO into the specified variables.
     uint8_t read_message(uint16_t& header, uint8_t* payload);
@@ -158,11 +158,11 @@ private:
     /// Write a value to the specified register.
     void write_register(reg reg_addr, uint8_t value);
 
-    /// Indicates if the debounce timer is running
-    bool is_in_debounce_timeout = false;
+    /// Indicates if the timeout timer is running
+    bool is_timeout_active = false;
 
-    /// Time when the current debounce timer expires
-    uint32_t debounce_timeout;
+    /// Time when the current timer expires
+    uint32_t timeout_expiration;
 
     /// Messages buffers
     uint8_t message_buf[64][4];

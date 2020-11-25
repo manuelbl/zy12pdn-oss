@@ -54,7 +54,7 @@ void fusb302::init()
     write_register(reg::maskb, *reg_maskb::m_all);
 
     next_message_id = 0;
-    is_in_debounce_timeout = false;
+    is_timeout_active = false;
     state_ = fusb302_state::usb_20;
     events.clear();
 }
@@ -71,8 +71,8 @@ void fusb302::start_sink()
 
     // Mask all interrupts except for bc_lvl
     write_register(reg::mask, *(reg_mask::m_all & ~reg_mask::m_bc_lvl));
-    // Mask all interrupts except for toggle done
-    write_register(reg::maska, *(reg_maska::m_all & ~reg_maska::m_togdone));
+    // Unmask all interrupts (toggle done, hard reset sent, hard reset, tx sent etc.)
+    write_register(reg::maska, *reg_maska::m_none);
     // BMC threshold: 1.35V with a threshold of 85mV
     write_register(reg::slice, *reg_slice::sdac_hys_085mv | 0x20);
     // Enable toggling (sink role only)
@@ -90,9 +90,9 @@ void fusb302::poll()
     bool interrupt_triggered = hal.is_interrupt_asserted();
     if (interrupt_triggered) {
         check_for_interrupts();
-    } else if (has_debounce_ended()) {
-        DEBUG_LOG("%lu: Debounce ended\r\n", hal.millis());
-        update_state();
+    } else if (has_timeout_expired()) {
+        DEBUG_LOG("%lu: Timeout ended\r\n", hal.millis());
+        update_state(true);
     }
 }
 
@@ -106,7 +106,12 @@ void fusb302::check_for_interrupts()
     reg_interruptb interruptb = static_cast<reg_interruptb>(read_register(reg::interruptb));
 
     if (*(interrupta & reg_interrupta::i_hardrst) != 0) {
-        DEBUG_LOG("%lu: Hard Reset\r\n", hal.millis());
+        DEBUG_LOG("%lu: Hard reset\r\n", hal.millis());
+        establish_usb_20();
+        return;
+    }
+    if (*(interrupta & reg_interrupta::i_hardsent) != 0) {
+        DEBUG_LOG("%lu: Hard reset sent\r\n", hal.millis());
         establish_usb_20();
         return;
     }
@@ -142,7 +147,7 @@ void fusb302::check_for_interrupts()
     }
 
     if (needs_state_update)
-        update_state();
+        update_state(false);
     if (may_have_message)
         check_for_msg();
 }
@@ -171,7 +176,7 @@ void fusb302::check_for_msg()
     }
 }
 
-void fusb302::update_state()
+void fusb302::update_state(bool timeout_ended)
 {
     fusb302_state old_state = state_;
     int cc = toggle_state();
@@ -184,15 +189,8 @@ void fusb302::update_state()
         break;
 
     case fusb302_state::usb_pd_wait:
-        if (!is_in_debounce_timeout) {
-            establish_usb_pd_wait_2();
-        }
-        break;
-
-    case fusb302_state::usb_pd_wait_2:
-        if (!is_in_debounce_timeout) {
-            DEBUG_LOG("Fallback to USB 2.0\r\n", 0);
-            establish_usb_20();
+        if (timeout_ended) {
+            send_hard_reset();
         }
         break;
 
@@ -207,7 +205,7 @@ void fusb302::update_state()
 void fusb302::establish_usb_20()
 {
     // Reset FUSB302 and put it in toggling mode
-    cancel_debounce();
+    cancel_timeout();
     init();
     start_sink();
     events.add_item(event(event_kind::state_changed));
@@ -223,7 +221,7 @@ void fusb302::establish_usb_pd_wait()
     // interrupt
     write_register(reg::mask, *(reg_mask::m_all & ~(reg_mask::m_activity | reg_mask::m_crc_chk)));
     // Enable good CRC sent interrupt
-    write_register(reg::maskb, *reg_maskb::m_all);
+    write_register(reg::maskb, *reg_maskb::m_none);
     // Enable pull down and CC monitoring
     write_register(reg::switches0,
         *(reg_switches0::pdwn1 | reg_switches0::pdwn2 | (cc == 1 ? reg_switches0::meas_cc1 : reg_switches0::meas_cc2)));
@@ -235,16 +233,14 @@ void fusb302::establish_usb_pd_wait()
     write_register(reg::control0, *reg_control0::none);
 
     state_ = fusb302_state::usb_pd_wait;
-    start_debounce_timeout(200);
+    start_timeout(200);
 }
 
-void fusb302::establish_usb_pd_wait_2()
+void fusb302::send_hard_reset()
 {
-    state_ = fusb302_state::usb_pd_wait_2;
-    start_debounce_timeout(200);
-
-    // Send Get_Source_Cap message
-    send_header_message(pd_msg_type::ctrl_get_source_cap);
+    write_register(reg::control3, *reg_control3::send_hard_reset);
+    state_ = fusb302_state::hard_reset_sent;
+    start_timeout(5);
 }
 
 void fusb302::establish_usb_pd()
@@ -253,7 +249,7 @@ void fusb302::establish_usb_pd()
         return;
 
     state_ = fusb302_state::usb_pd;
-    cancel_debounce();
+    cancel_timeout();
     DEBUG_LOG("USB PD comm\r\n", 0);
     events.add_item(event(event_kind::state_changed));
 }
@@ -277,26 +273,26 @@ int fusb302::toggle_state()
     return cc;
 }
 
-void fusb302::start_debounce_timeout(uint32_t ms)
+void fusb302::start_timeout(uint32_t ms)
 {
-    is_in_debounce_timeout = true;
-    debounce_timeout = hal.millis() + ms;
+    is_timeout_active = true;
+    timeout_expiration = hal.millis() + ms;
 }
 
-bool fusb302::has_debounce_ended()
+bool fusb302::has_timeout_expired()
 {
-    if (!is_in_debounce_timeout)
+    if (!is_timeout_active)
         return false;
 
-    uint32_t delta = debounce_timeout - hal.millis();
+    uint32_t delta = timeout_expiration - hal.millis();
     if (delta <= 0x8000000)
         return false;
 
-    is_in_debounce_timeout = false;
+    is_timeout_active = false;
     return true;
 }
 
-void fusb302::cancel_debounce() { is_in_debounce_timeout = false; }
+void fusb302::cancel_timeout() { is_timeout_active = false; }
 
 bool fusb302::has_event() { return events.num_items() != 0; }
 

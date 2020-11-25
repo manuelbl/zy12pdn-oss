@@ -194,6 +194,7 @@ USB_PD_ADD_BITMAKS_OPS(reg_reset)
 /// FUSB302 register MASKA values
 enum class reg_maska : uint8_t {
     m_all = 0xff,
+    m_none = 0x00,
     m_ocp_temp = 0x01 << 7,
     m_togdone = 0x01 << 6,
     m_softfail = 0x01 << 5,
@@ -206,7 +207,7 @@ enum class reg_maska : uint8_t {
 USB_PD_ADD_BITMAKS_OPS(reg_maska)
 
 /// FUSB302 register MASKB values
-enum class reg_maskb : uint8_t { m_all = 0x01, m_gcrcsent = 0x01 << 0 };
+enum class reg_maskb : uint8_t { m_all = 0x01, m_none = 0x00, m_gcrcsent = 0x01 << 0 };
 USB_PD_ADD_BITMAKS_OPS(reg_maskb)
 
 /// FUSB302 register STATUS1A values
@@ -229,7 +230,7 @@ USB_PD_ADD_BITMAKS_OPS(reg_status1a)
 enum class reg_interrupta : uint8_t {
     i_ocp_temp = 0x01 << 7,
     i_togdone = 0x01 << 6,
-    i_softail = 0x01 << 5,
+    i_softfail = 0x01 << 5,
     i_retryfail = 0x01 << 4,
     i_hardsent = 0x01 << 3,
     i_txsent = 0x01 << 2,
