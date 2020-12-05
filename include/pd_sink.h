@@ -16,7 +16,16 @@
 namespace usb_pd {
 
 /// Power supply type
-enum class pd_supply_type : uint8_t { fixed = 0, battery = 1, variable = 2, augmented = 3 };
+enum class pd_supply_type : uint8_t {
+    /// Fixed supply (Vmin = Vmax)
+    fixed = 0,
+    /// Battery
+    battery = 1,
+    /// Variable supply (non-battery)
+    variable = 2,
+    /// Programmable power supply
+    pps = 3
+};
 
 /// Power deliver protocol
 enum class pd_protocol {
@@ -36,6 +45,8 @@ struct source_capability {
     uint16_t max_current;
     /// Voltage (in mV)
     uint16_t voltage;
+    /// Minimum voltage for variable supplies (in mV)
+    uint16_t min_voltage;
 };
 
 /// Callback event types
@@ -85,6 +96,9 @@ struct pd_sink {
     /// Array of supply capabilities
     source_capability source_caps[10];
 
+    /// Indicates if the source can deliver unconstrained power (e.g. a wall wart)
+    bool is_unconstrained = false;
+
     /// Requested voltage (in mV)
     uint16_t requested_voltage = 0;
 
@@ -106,6 +120,7 @@ private:
     fusb302 pd_controller;
     event_callback event_callback_ = nullptr;
     pd_protocol protocol_ = pd_protocol::usb_20;
+    bool supports_ext_message = false;
 };
 
 } // namespace usb_pd

@@ -12,6 +12,8 @@
 
 #include "pd_debug.h"
 
+#include <string.h>
+
 namespace usb_pd {
 
 static char version_id[24];
@@ -88,18 +90,37 @@ void pd_sink::handle_src_cap_msg(uint16_t header, const uint8_t* payload)
     int n = pd_header::num_data_objs(header);
 
     num_source_caps = 0;
+    is_unconstrained = false;
+    supports_ext_message = false;
 
-    for (int obj_pos = 0; obj_pos < n; obj_pos++) {
+    for (int obj_pos = 0; obj_pos < n; obj_pos++, payload += 4) {
         if (num_source_caps >= sizeof(source_caps) / sizeof(source_caps[0]))
             break;
 
-        pd_supply_type type = static_cast<pd_supply_type>(payload[3] >> 6);
-        uint16_t max_current = 0;
-        uint16_t voltage = 0;
+        uint32_t capability;
+        memcpy(&capability, payload, 4);
+
+        pd_supply_type type = static_cast<pd_supply_type>(capability >> 30);
+        uint16_t max_current = (capability & 0x3ff) * 10;
+        uint16_t min_voltage = ((capability >> 10) & 0x03ff) * 50;
+        uint16_t voltage = ((capability >> 20) & 0x03ff) * 50;
 
         if (type == pd_supply_type::fixed) {
-            voltage = ((payload[2] & 0x0f) * 64 + (payload[1] >> 2)) * 50;
-            max_current = ((payload[1] & 0x03) * 256 + payload[0]) * 10;
+            voltage = min_voltage;
+
+            // Fixed 5V capability contains additional information
+            if (voltage == 5000) {
+                is_unconstrained = (capability & (1 << 27)) != 0;
+                supports_ext_message = (capability & (1 << 24)) != 0;
+            }
+
+        } else if (type == pd_supply_type::pps) {
+            if ((capability & (3 << 28)) != 0)
+                continue;
+
+            max_current = (capability & 0x007f) * 50;
+            min_voltage = ((capability >> 8) & 0x00ff) * 100;
+            voltage = ((capability >> 17) & 0x00ff) * 100;
         }
 
         source_caps[num_source_caps] = {
@@ -107,10 +128,9 @@ void pd_sink::handle_src_cap_msg(uint16_t header, const uint8_t* payload)
             .obj_pos = static_cast<uint8_t>(obj_pos + 1),
             .max_current = max_current,
             .voltage = voltage,
+            .min_voltage = min_voltage,
         };
         num_source_caps++;
-
-        payload += 4;
     }
 
     notify(callback_event::source_caps_changed);
@@ -137,15 +157,16 @@ void pd_sink::request_power(int voltage, int max_current)
     // Lookup object position by voltage
     int obj_pos = -1;
     for (int i = 0; i < num_source_caps; i++) {
-        if (source_caps[i].voltage == voltage) {
-            obj_pos = source_caps[i].obj_pos;
+        auto cap = source_caps + i;
+        if (cap->supply_type != pd_supply_type::pps && voltage <= cap->voltage && voltage >= cap->min_voltage ) {
+            obj_pos = cap->obj_pos;
             if (max_current == 0)
                 max_current = source_caps[i].max_current;
         }
     }
 
     if (obj_pos == -1) {
-        DEBUG_LOG("Invalid power requested", 0);
+        DEBUG_LOG("Unsupported voltage requested", 0);
         return; // no match
     }
 
