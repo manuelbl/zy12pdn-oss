@@ -137,7 +137,7 @@ bool eeprom::write(uint16_t key, uint16_t value)
     status_e status = append_key_value(key, value);
 
     if (status == status_e::page_full)
-        status = page_transfer(key, value);
+        status = transfer_page(key, value);
 
     flash_lock();
 
@@ -230,7 +230,7 @@ void eeprom::format()
  * @param value value
  * @return status (`op_completed`, `no_valid_page`)
  */
-eeprom::status_e eeprom::page_transfer(uint16_t key, uint16_t data)
+eeprom::status_e eeprom::transfer_page(uint16_t key, uint16_t data)
 {
     uint32_t page_start_addr = find_valid_page(operation_e::read);
     if (page_start_addr == 0)

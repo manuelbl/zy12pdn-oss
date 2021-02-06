@@ -18,7 +18,7 @@ namespace usb_pd {
 /**
  * EEPROM emulation.
  *
- * Values can be stored from key 0 to `num_keys` - 1.
+ * Values can be stored at key 0 to `num_keys` - 1.
  * `num_keys` must be set at initialization and should
  * be chosen as small as possible.
  */
@@ -35,19 +35,21 @@ struct eeprom {
 
     /**
      * Reads the 16 bit value from the specified key.
+     * 
      * @param key key
      * @param value reference to variable receiving value
      * @return `true` if value was found, `false` otherwise
      */
-    static bool read(uint16_t address, uint16_t* value);
+    static bool read(uint16_t key, uint16_t* value);
 
     /**
      * Writes a 16 bit value for the specified key.
+     * 
      * @param key key
      * @param value value to write
      * @return `true` if the write was successful, `false` otherwise
      */
-    static bool write(uint16_t address, uint16_t value);
+    static bool write(uint16_t key, uint16_t value);
 
     static int num_keys_;
 
@@ -58,7 +60,7 @@ private:
 
     static void format();
     static status_e append_key_value(uint16_t key, uint16_t value);
-    static status_e page_transfer(uint16_t key, uint16_t value);
+    static status_e transfer_page(uint16_t key, uint16_t value);
     static uint32_t find_valid_page(operation_e operation);
     static void copy_slots(uint16_t skip_key);
 };
