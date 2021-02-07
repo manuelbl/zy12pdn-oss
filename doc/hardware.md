@@ -23,7 +23,7 @@ The SWD programming port is available as 4 pads on the bottom side of the board.
 | C2    | 470nF     | Decoupling capacitor at input of LDO |
 | C3    | 4.7µF     | Decoupling capacitor at output of LDO |
 | C4    | 100nF     | Decoupling capacitor at VDD/VDDA of MCU |
-| C5    | 100nF     | Debouncing capactior for button |
+| C5    | 100nF     | Debouncing capacitor for button |
 | C6    | 100nF     | Timing capacitor for reset |
 | R1, R2 | 100Ω     | Input protection for CC1/CC2 |
 | R3    | 2.2kΩ     | Pull-up resistor for SDA |
@@ -32,7 +32,7 @@ The SWD programming port is available as 4 pads on the bottom side of the board.
 | R6    | 2.2kΩ     | Current limiting resistor for red LED |
 | SW1   | ?         | Tactile button |
 | LED1  | ?         | RGB LED |
-| USBC1 | ?         | USB-C receptable |
+| USBC1 | ?         | USB-C connector |
 
 
 ## Notes
@@ -55,4 +55,4 @@ If the board can no longer be flashed with the SWD connector on the bottom side 
 - Use a firmware upload/erase configuration that connects under reset.
 - Erase the flash.
 
-I've been succuessful with a J-Link adapter and J-Flash Lite (but not with J-Flash). An ST-Link adapter and the proper configuration might also work if you know how.
+I've been successful with a J-Link adapter and J-Flash Lite (but not with J-Flash). An ST-Link adapter and the proper configuration might also work if you know how.
