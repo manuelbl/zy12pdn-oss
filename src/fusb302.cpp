@@ -59,30 +59,17 @@ void fusb302::init()
     events.clear();
 }
 
-void fusb302::stop()
-{
-    // full reset
-    write_register(reg::reset, *(reg_reset::sw_res | reg_reset::pd_reset));
-}
-
 void fusb302::start_sink()
 {
-    // Put FUSB302 in toggling mode (sink only)
+    // As the interrupt line is also used as SWDIO, the FUSB302B interrupt is
+    // not activated until activity on CC1 or CC2 has been detected.
+    // Thus, CC1 and CC2 have to be polled manually even though the FUSB302B
+    // could do it automatically.
 
-    // Mask all interrupts except for bc_lvl
-    write_register(reg::mask, *(reg_mask::m_all & ~reg_mask::m_bc_lvl));
-    // Unmask all interrupts (toggle done, hard reset, tx sent etc.)
-    write_register(reg::maska, *reg_maska::m_none);
     // BMC threshold: 1.35V with a threshold of 85mV
     write_register(reg::slice, *reg_slice::sdac_hys_085mv | 0x20);
-    // Enable toggling (sink role only)
-    write_register(reg::control2, *(reg_control2::mode_snk_polling | reg_control2::toggle));
-    // Enable automatic retries
-    write_register(reg::control3, *(reg_control3::auto_retry | reg_control3::_3_retries));
-    // Enable interrupt (disable global interrupt mask) and default
-    write_register(reg::control0, *reg_control0::host_cur_usb_def);
 
-    state_ = fusb302_state::usb_20;
+    start_measurement(1);
 }
 
 void fusb302::poll()
@@ -91,15 +78,44 @@ void fusb302::poll()
     if (interrupt_triggered) {
         check_for_interrupts();
     } else if (has_timeout_expired()) {
-        DEBUG_LOG("%lu: Timeout ended\r\n", hal.millis());
-        update_state(true);
+        if (state_ == fusb302_state::usb_pd_wait) {
+            DEBUG_LOG("%lu: No CC activity\r\n", hal.millis());
+            establish_retry_wait();
+        } else if (state_ == fusb302_state::usb_20) {
+            test_measurement();
+        } else if (state_ == fusb302_state::usb_retry_wait) {
+            establish_usb_20();
+        }
     }
+}
+
+void fusb302::start_measurement(int cc)
+{
+    reg_switches0 sw0 = cc == 1 ? reg_switches0::meas_cc1 : reg_switches0::meas_cc2;
+    sw0 = sw0 | reg_switches0::pdwn1 | reg_switches0::pdwn2;
+
+    // test CC
+    write_register(reg::switches0, *sw0);
+    start_timeout(10);
+    measuring_cc = cc;
+}
+
+void fusb302::test_measurement()
+{
+    read_register(reg::status0);
+    reg_status0 status0 = static_cast<reg_status0>(read_register(reg::status0));
+    if (*(status0 & reg_status0::bc_lvl_mask) == 0) {
+        start_measurement(measuring_cc == 1 ? 2 : 1);
+        return;
+    }
+
+    establish_usb_pd_wait(measuring_cc);
+    measuring_cc = 0;
 }
 
 void fusb302::check_for_interrupts()
 {
     bool may_have_message = false;
-    bool needs_state_update = false;
 
     reg_interrupt interrupt = static_cast<reg_interrupt>(read_register(reg::interrupt));
     reg_interrupta interrupta = static_cast<reg_interrupta>(read_register(reg::interrupta));
@@ -107,12 +123,11 @@ void fusb302::check_for_interrupts()
 
     if (*(interrupta & reg_interrupta::i_hardrst) != 0) {
         DEBUG_LOG("%lu: Hard reset\r\n", hal.millis());
-        establish_usb_20();
+        establish_retry_wait();
         return;
     }
     if (*(interrupta & reg_interrupta::i_retryfail) != 0) {
         DEBUG_LOG("Retry failed\r\n", 0);
-        needs_state_update = true;
     }
     if (*(interrupta & reg_interrupta::i_txsent) != 0) {
         DEBUG_LOG("TX ack\r\n", 0);
@@ -132,17 +147,6 @@ void fusb302::check_for_interrupts()
         // DEBUG_LOG("Good CRC sent\r\n", 0);
         may_have_message = true;
     }
-    if (*(interrupta & reg_interrupta::i_togdone) != 0) {
-        DEBUG_LOG("%lu: Toggle done\r\n", hal.millis());
-        needs_state_update = true;
-    }
-    if (*(interrupt & reg_interrupt::i_bc_lvl) != 0) {
-        DEBUG_LOG("BC_LVL\r\n", 9);
-        needs_state_update = true;
-    }
-
-    if (needs_state_update)
-        update_state(false);
     if (may_have_message)
         check_for_msg();
 }
@@ -173,50 +177,30 @@ void fusb302::check_for_msg()
     }
 }
 
-void fusb302::update_state(bool timeout_ended)
+void fusb302::establish_retry_wait()
 {
-    fusb302_state old_state = state_;
-    int cc = toggle_state();
+    DEBUG_LOG("Reset\r\n", 0);
 
-    switch (state_) {
-    case fusb302_state::usb_20:
-        if (cc != 0) {
-            establish_usb_pd_wait();
-        }
-        break;
-
-    case fusb302_state::usb_pd_wait:
-        if (timeout_ended) {
-            establish_usb_20();
-        }
-        break;
-
-    default:
-        break;
-    }
-
-    if (old_state != state_)
-        events.add_item(event(event_kind::state_changed));
-}
-
-void fusb302::establish_usb_20()
-{
-    // Reset FUSB302 and put it in toggling mode
+    // Reset FUSB302
     cancel_timeout();
     init();
-    start_sink();
+    state_ = fusb302_state::usb_retry_wait;
+    start_timeout(500);
     events.add_item(event(event_kind::state_changed));
 }
 
-void fusb302::establish_usb_pd_wait()
-{
-    int cc = toggle_state();
+void fusb302::establish_usb_20() { start_sink(); }
 
-    // Turn off toggling
-    write_register(reg::control2, *reg_control2::mode_snk_polling);
-    // Enable interrupts for CC activity and CRC_CHK; disable BC_LVL
-    // interrupt
+void fusb302::establish_usb_pd_wait(int cc)
+{
+    hal.init_int_n();
+
+    // Enable automatic retries
+    write_register(reg::control3, *(reg_control3::auto_retry | reg_control3::_3_retries));
+    // Enable interrupts for CC activity and CRC_CHK
     write_register(reg::mask, *(reg_mask::m_all & ~(reg_mask::m_activity | reg_mask::m_crc_chk)));
+    // Unmask all interrupts (toggle done, hard reset, tx sent etc.)
+    write_register(reg::maska, *reg_maska::m_none);
     // Enable good CRC sent interrupt
     write_register(reg::maskb, *reg_maskb::m_none);
     // Enable pull down and CC monitoring
@@ -226,11 +210,11 @@ void fusb302::establish_usb_pd_wait()
     write_register(reg::switches1,
         *(reg_switches1::specrev_rev_2_0 | reg_switches1::auto_crc
             | (cc == 1 ? reg_switches1::txcc1 : reg_switches1::txcc2)));
-    // Disable global interrupt mask
+    // Enable interrupt
     write_register(reg::control0, *reg_control0::none);
 
     state_ = fusb302_state::usb_pd_wait;
-    start_timeout(200);
+    start_timeout(300);
 }
 
 void fusb302::establish_usb_pd()
@@ -242,25 +226,6 @@ void fusb302::establish_usb_pd()
     cancel_timeout();
     DEBUG_LOG("USB PD comm\r\n", 0);
     events.add_item(event(event_kind::state_changed));
-}
-
-int fusb302::toggle_state()
-{
-    int cc = 0;
-
-    reg_status1a status1a = static_cast<reg_status1a>(read_register(reg::status1a));
-    switch (status1a & reg_status1a::togss_mask) {
-    case reg_status1a::togss_snk_on_cc1:
-        cc = 1;
-        break;
-    case reg_status1a::togss_snk_on_cc2:
-        cc = 2;
-        break;
-    default:
-        break;
-    }
-
-    return cc;
 }
 
 void fusb302::start_timeout(uint32_t ms)

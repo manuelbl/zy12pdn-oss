@@ -43,6 +43,11 @@ struct mcu_hal {
     void init();
 
     /**
+     * Configures the INT_N pin as input (disabling SWD)
+     */
+    void init_int_n();
+
+    /**
      * Read data from PD controller registers.
      *
      * @param reg register address

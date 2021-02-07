@@ -30,8 +30,6 @@ void pd_sink::init()
     update_protocol();
 }
 
-void pd_sink::stop() { pd_controller.stop(); }
-
 void pd_sink::set_event_callback(event_callback cb) { event_callback_ = cb; }
 
 void pd_sink::poll()
@@ -158,7 +156,7 @@ void pd_sink::request_power(int voltage, int max_current)
     int obj_pos = -1;
     for (int i = 0; i < num_source_caps; i++) {
         auto cap = source_caps + i;
-        if (cap->supply_type != pd_supply_type::pps && voltage <= cap->voltage && voltage >= cap->min_voltage ) {
+        if (cap->supply_type != pd_supply_type::pps && voltage <= cap->voltage && voltage >= cap->min_voltage) {
             obj_pos = cap->obj_pos;
             if (max_current == 0)
                 max_current = source_caps[i].max_current;

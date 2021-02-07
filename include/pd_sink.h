@@ -67,7 +67,6 @@ struct pd_sink {
     typedef void (*event_callback)(callback_event event);
 
     void init();
-    void stop();
 
     void set_event_callback(event_callback cb);
 
@@ -79,7 +78,7 @@ struct pd_sink {
      * The source will respond with `accepted` and `ps_ready` (if successful)
      * or `rejected` if unsucessful. Separate events will be triggered for these
      * messages.
-     * 
+     *
      * If the source hasn't advertised the selected message, no request is sent.
      *
      * @param voltage the desired voltage (in mV)

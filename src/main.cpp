@@ -12,7 +12,6 @@
 #include "hal.h"
 #include "pd_debug.h"
 #include "pd_sink.h"
-#include "swd.h"
 
 #include <algorithm>
 
@@ -39,10 +38,9 @@ static void update_led();
 static void switch_voltage();
 static void on_source_caps_changed();
 static void loop();
-static void configuration_mode();
+static void run_config_mode();
 static void set_led_prog_mode(int mode);
 static void save_mode(int mode);
-static void firmware_loop();
 
 int main()
 {
@@ -53,9 +51,7 @@ int main()
 
     // Enter configuration mode if button is being pressed on power up
     if (hal.has_button_been_pressed())
-        configuration_mode();
-
-    swd::init_monitoring([]{ power_sink.stop(); });
+        run_config_mode();
 
     // Read the configured mode
     if (!nvs.read(nvs_voltage_key, &desired_mode))
@@ -67,11 +63,8 @@ int main()
     power_sink.init();
 
     // Work in regular loop until SWD activity is detected
-    while (!swd::activity_detected())
+    while (true)
         loop();
-
-    firmware_loop();
-    return 0;
 }
 
 // Regular operations loop
@@ -122,7 +115,7 @@ void sink_callback(callback_event event)
 
     switch (event) {
     case callback_event::source_caps_changed:
-        DEBUG_LOG("Caps changed\r\n", 0);
+        DEBUG_LOG("Caps changed: %d\r\n", power_sink.num_source_caps);
         on_source_caps_changed();
         break;
 
@@ -205,7 +198,7 @@ void update_led()
     hal.set_led(c, flash_duration, flash_duration);
 }
 
-void configuration_mode()
+void run_config_mode()
 {
     // Wait until button has been released
     hal.set_led(color::cyan, 70, 70);
@@ -266,18 +259,4 @@ void save_mode(int mode)
 
     while (true)
         ; // end of program
-}
-
-// Firmware mode: restore SWD pins and flash LED
-void firmware_loop()
-{
-    hal.set_led(color::blue, 100, 100);
-
-    // Restore SWD pins so firmware can be uploaded
-    swd::restore();
-
-    // Fast flashing red color
-    while (true) {
-        hal.poll();
-    }
 }

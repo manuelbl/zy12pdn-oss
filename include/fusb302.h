@@ -26,7 +26,9 @@ enum class fusb302_state : uint8_t {
     /// Activity on CC1/CC2, waiting to receive USB PD messages
     usb_pd_wait,
     /// Successful USB PD communication established
-    usb_pd
+    usb_pd,
+    /// Wait period after a failure
+    usb_retry_wait
 };
 
 /// Event kind
@@ -91,14 +93,6 @@ struct fusb302 {
     void start_sink();
 
     /**
-     * Stops the FUSB302.
-     *
-     * It will neither behave as a sink nor as a source and will
-     * no longer receive messages or be able to send messages.
-     */
-    void stop();
-
-    /**
      * Polls FUSB302 for interrupts and messages.
      *
      * After a call to this functions, new events may be available.
@@ -129,15 +123,18 @@ struct fusb302 {
 private:
     void check_for_interrupts();
     void check_for_msg();
+    void start_measurement(int cc);
+    void test_measurement();
     void establish_usb_20();
-    void establish_usb_pd_wait();
+    void establish_usb_pd_wait(int cc);
     void establish_usb_pd();
+    void establish_retry_wait();
 
-    /// Update the state based on the FUSB302 status
-    void update_state(bool timeout_ended);
+    // /// Update the state based on the FUSB302 status
+    // void update_state(bool timeout_ended);
 
-    /// Gets what CC line has activity (if any)
-    int toggle_state();
+    // /// Gets what CC line has activity (if any)
+    // int toggle_state();
 
     bool has_timeout_expired();
     void start_timeout(uint32_t ms);
@@ -154,6 +151,9 @@ private:
 
     /// Write a value to the specified register.
     void write_register(reg reg_addr, uint8_t value);
+
+    /// cc line being measured
+    int measuring_cc = 0;
 
     /// Indicates if the timeout timer is running
     bool is_timeout_active = false;

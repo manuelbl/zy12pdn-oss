@@ -56,15 +56,14 @@ void mcu_hal::init()
     gpio_mode_setup(led_blue_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, led_blue_pin);
     set_led(color::blue);
 
-    // Initialize interrupt
-    gpio_mode_setup(fusb302_int_n_port, GPIO_MODE_INPUT, GPIO_PUPD_NONE, fusb302_int_n_pin);
-
     i2c.init();
 
     // Initialize button
     gpio_mode_setup(button_port, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, button_pin);
     is_button_down = false;
 }
+
+void mcu_hal::init_int_n() { gpio_mode_setup(fusb302_int_n_port, GPIO_MODE_INPUT, GPIO_PUPD_NONE, fusb302_int_n_pin); }
 
 void mcu_hal::pd_ctrl_read(uint8_t reg, int data_len, uint8_t* data)
 {
