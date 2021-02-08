@@ -74,15 +74,15 @@ void fusb302::start_sink()
 
 void fusb302::poll()
 {
-    bool interrupt_triggered = hal.is_interrupt_asserted();
-    if (interrupt_triggered) {
+    if (hal.is_interrupt_asserted()) {
         check_for_interrupts();
+
     } else if (has_timeout_expired()) {
         if (state_ == fusb302_state::usb_pd_wait) {
             DEBUG_LOG("%lu: No CC activity\r\n", hal.millis());
             establish_retry_wait();
         } else if (state_ == fusb302_state::usb_20) {
-            test_measurement();
+            check_measurement();
         } else if (state_ == fusb302_state::usb_retry_wait) {
             establish_usb_20();
         }
@@ -100,11 +100,12 @@ void fusb302::start_measurement(int cc)
     measuring_cc = cc;
 }
 
-void fusb302::test_measurement()
+void fusb302::check_measurement()
 {
     read_register(reg::status0);
     reg_status0 status0 = static_cast<reg_status0>(read_register(reg::status0));
     if (*(status0 & reg_status0::bc_lvl_mask) == 0) {
+        // No CC activity
         start_measurement(measuring_cc == 1 ? 2 : 1);
         return;
     }
@@ -159,7 +160,7 @@ void fusb302::check_for_msg()
             break;
 
         uint16_t header;
-        uint8_t* payload = message_buf[message_index];
+        uint8_t* payload = rx_message_buf[rx_message_index];
         read_message(header, payload);
 
         reg_status0 status0 = static_cast<reg_status0>(read_register(reg::status0));
@@ -168,11 +169,12 @@ void fusb302::check_for_msg()
         } else if (pd_header::message_type(header) == pd_msg_type::ctrl_good_crc) {
             DEBUG_LOG("Good CRC packet\r\n", 9);
         } else {
-            establish_usb_pd();
+            if (state_ != fusb302_state::usb_pd)
+                establish_usb_pd();
             events.add_item(event(header, payload));
-            message_index++;
-            if (message_index >= num_message_buf)
-                message_index = 0;
+            rx_message_index++;
+            if (rx_message_index >= num_message_buf)
+                rx_message_index = 0;
         }
     }
 }
@@ -182,7 +184,6 @@ void fusb302::establish_retry_wait()
     DEBUG_LOG("Reset\r\n", 0);
 
     // Reset FUSB302
-    cancel_timeout();
     init();
     state_ = fusb302_state::usb_retry_wait;
     start_timeout(500);
@@ -193,6 +194,7 @@ void fusb302::establish_usb_20() { start_sink(); }
 
 void fusb302::establish_usb_pd_wait(int cc)
 {
+    // Configure INT_N pin
     hal.init_int_n();
 
     // Enable automatic retries
@@ -219,9 +221,6 @@ void fusb302::establish_usb_pd_wait(int cc)
 
 void fusb302::establish_usb_pd()
 {
-    if (state_ == fusb302_state::usb_pd)
-        return;
-
     state_ = fusb302_state::usb_pd;
     cancel_timeout();
     DEBUG_LOG("USB PD comm\r\n", 0);

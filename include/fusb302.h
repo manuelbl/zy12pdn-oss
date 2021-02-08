@@ -21,9 +21,9 @@ namespace usb_pd {
 
 /// FUSB302 state
 enum class fusb302_state : uint8_t {
-    /// VBUS is present, no activity on CC1/CC2
+    /// VBUS is present, monitoring for activity on CC1/CC2
     usb_20,
-    /// Activity on CC1/CC2, waiting to receive USB PD messages
+    /// Activity on CC1/CC2 has been detected, waiting for first USB PD message
     usb_pd_wait,
     /// Successful USB PD communication established
     usb_pd,
@@ -34,9 +34,9 @@ enum class fusb302_state : uint8_t {
 /// Event kind
 enum class event_kind : uint8_t { none, state_changed, message_received };
 
-/// Event
+/// Event queue by FUSB302 instance for clients (such as `pd_sink`)
 struct event {
-    /// EVent kind
+    /// Event kind
     event_kind kind;
 
     /// Message header (valid if event_kind = `message_received`)
@@ -124,20 +124,17 @@ private:
     void check_for_interrupts();
     void check_for_msg();
     void start_measurement(int cc);
-    void test_measurement();
+    void check_measurement();
     void establish_usb_20();
     void establish_usb_pd_wait(int cc);
     void establish_usb_pd();
     void establish_retry_wait();
 
-    // /// Update the state based on the FUSB302 status
-    // void update_state(bool timeout_ended);
-
-    // /// Gets what CC line has activity (if any)
-    // int toggle_state();
-
+    /// Checks if the timeout has expired
     bool has_timeout_expired();
+    /// Starts a new timeout (and cancels the pending one)
     void start_timeout(uint32_t ms);
+    /// Cancels the pending timeout (if any)
     void cancel_timeout();
 
     /// Retrieves the received message from the FIFO into the specified variables.
@@ -163,11 +160,11 @@ private:
 
     constexpr static int num_message_buf = 4;
 
-    /// Messages buffers
-    uint8_t message_buf[64][num_message_buf];
+    /// RX message buffers
+    uint8_t rx_message_buf[64][num_message_buf];
 
-    /// Next message index
-    int message_index = 0;
+    /// Next RX message index
+    int rx_message_index = 0;
 
     /// Queue of event that have occurred
     queue<event, 6> events;
