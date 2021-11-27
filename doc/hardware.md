@@ -16,9 +16,9 @@ The SWD programming port is available as 4 pads on the bottom side of the board.
 | ----- | --------- | ------- |
 | U1    | FUSB302BMPX  | USB PD controller |
 | U2    | STM32F030F4P6 | Microcontroller |
-| U3    | ?         | 3.3V voltage regular (LDO), Vin up to 20V |
-| D1, D2 | ?         | Diode, probably for ESD protection |
-| D3    | ?         | Schottky diode, reverse voltage protection? |
+| U3    | ME6203A33M3G | 3.3V voltage regular (LDO), Vin up to 40V, Iout = 100mA |
+| D1, D2 | CESD3V3D5 | ESD protection diode, reverse stand-off voltage = 3.3V |
+| D3    | RB521S-40 | Schottky diode, reverse voltage protection |
 | C1    | 1µF       | Decoupling capacitor at input of LDO |
 | C2    | 470nF     | Decoupling capacitor at input of LDO |
 | C3    | 4.7µF     | Decoupling capacitor at output of LDO |
@@ -30,9 +30,9 @@ The SWD programming port is available as 4 pads on the bottom side of the board.
 | R4    | 2.2kΩ     | Current limiting resistor for blue LED |
 | R5    | 5.6kΩ     | Current limiting resistor for green LED |
 | R6    | 2.2kΩ     | Current limiting resistor for red LED |
-| SW1   | ?         | Tactile button |
-| LED1  | ?         | RGB LED |
-| USBC1 | ?         | USB-C connector |
+| SW1   | SKRPACE010 (or similar) | Tactile switch |
+| LED1  | TJ-S1615SW6TGLCCYRGB-A5 (or similar)| RGB LED |
+| USBC1 | 918-418K2023S40001 (or similar) | USB-C female connector, 16 pin |
 
 
 ## Notes
