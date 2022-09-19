@@ -143,7 +143,7 @@ bool pd_sink::update_protocol()
     } else {
         protocol_ = pd_protocol::usb_20;
         active_voltage = 5000;
-        active_voltage = 900;
+        active_max_current = 900;
         num_source_caps = 0;
     }
 
