@@ -79,12 +79,46 @@ struct pd_sink {
      * or `rejected` if unsucessful. Separate events will be triggered for these
      * messages.
      *
-     * If the source hasn't advertised the selected message, no request is sent.
+     * If the source hasn't advertised a matching voltage, no message is sent and
+     * -1 is returned.
+     * 
+     * If a programmable power supply (PPS) capability is selected, the sink starts
+     * to send a `request` message every 8 seconds as required by the standard.
+     * Otherwise, the source will revert to 5V after 10 seconds.
      *
+     * If the sink draws more power the specified maximum current, a PPS capability will
+     * reduce the voltage until the current is no longer exceeded. A fixed supply uses
+     * the specified current to distribute the current between multiple outputs. If
+     * exceed, it might revert to 5V or stop supplying power altogether.
+     * 
      * @param voltage the desired voltage (in mV)
-     * @param max_current the desired maximum current (in mA), or 0 for the source's maximum current
+     * @param max_current the highest current (in mA) the sink will draw,
+     *   or 0 for the maximum current the source can provide for the selected voltage
+     * @return index of selected source capability, or -1 if no matching voltage was found.
      */
-    void request_power(int voltage, int max_current = 0);
+    int request_power(int voltage, int max_current = 0);
+
+    /**
+     * Requests the specified voltage from the specified source capability.
+     * 
+     * The source will respond with `accepted` and `ps_ready` (if successful)
+     * or `rejected` if unsucessful. Separate events will be triggered for these
+     * messages.
+     * 
+     * If the specified voltage or current is out of the range for the specified
+     * source capability or if the index is invalid, no request is sent and -1 is returned.
+     * 
+     * If the sink draws more power the specified maximum current, a PPS capability will
+     * reduce the voltage until the current is no longer exceeded. A fixed supply uses
+     * the specified current to distribute the current between multiple outputs. If
+     * exceed, it might revert to 5V or stop supplying power altogether.
+     * 
+     * @param index index of the source capability
+     * @param voltage the desired voltage (in mV)
+     * @param max_current the highest current (in mA) the sink will draw (at least 25mA)
+     * @return specified, or -1 if request could not be fulfilled
+     */
+    int request_power_from_capability(int index, int voltage, int max_current);
 
     /// Active power delivery protocol
     pd_protocol protocol() { return protocol_; }
@@ -115,11 +149,16 @@ private:
     void handle_src_cap_msg(uint16_t header, const uint8_t* payload);
     bool update_protocol();
     void notify(callback_event event);
+    void set_request_payload_fixed(uint8_t* payload, int obj_pos, int voltage, int current);
+    void set_request_payload_pps(uint8_t* payload, int obj_pos, int voltage, int current);
 
     fusb302 pd_controller;
     event_callback event_callback_ = nullptr;
     pd_protocol protocol_ = pd_protocol::usb_20;
     bool supports_ext_message = false;
+
+    int selected_pps_index = -1;
+    uint32_t next_pps_request;
 };
 
 } // namespace usb_pd
