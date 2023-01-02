@@ -167,6 +167,10 @@ void on_source_caps_changed()
         for (int i = 0; i < power_sink.num_source_caps; i++)
             voltage = std::max(voltage, static_cast<int>(power_sink.source_caps[i].voltage));
 
+        // Limit voltage to 20V as the voltage regulator was likely selected to handle 20V max
+        if (voltage > 20000)
+            voltage = 20000;
+
     } else {
         // Search for desried voltage
         for (int i = 0; i < power_sink.num_source_caps; i++) {
