@@ -247,7 +247,7 @@ void run_config_mode()
 void set_led_prog_mode(int mode)
 {
     const color colors[] = { color::red, color::yellow, color::green, color::cyan, color::blue, color::purple };
-    hal.set_led(colors[mode]);
+    hal.set_led(colors[mode], 80, 40);
 }
 
 // Save selected mode in non-volatile storage
