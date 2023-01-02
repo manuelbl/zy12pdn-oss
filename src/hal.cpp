@@ -62,6 +62,8 @@ void mcu_hal::init()
     // Initialize button
     gpio_mode_setup(button_port, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, button_pin);
     is_button_down = false;
+    last_button_change_time = 0;
+    button_has_been_pressed = false;
 }
 
 void mcu_hal::init_int_n() { gpio_mode_setup(fusb302_int_n_port, GPIO_MODE_INPUT, GPIO_PUPD_NONE, fusb302_int_n_pin); }
@@ -124,22 +126,39 @@ void mcu_hal::update_led()
 
 bool mcu_hal::has_button_been_pressed()
 {
-    if (is_button_down)
-        return false; // button still down
+    if (button_has_been_pressed) {
+        button_has_been_pressed = false;
+        return true;
+    }
 
-    is_button_down = gpio_get(button_port, button_pin) == 0;
+    return false;
+}
+
+bool mcu_hal::is_button_being_pressed() {
     return is_button_down;
 }
 
-bool mcu_hal::is_button_held_down() { return is_button_down; }
+bool mcu_hal::is_long_press() {
+    return is_button_down && (millis() - last_button_change_time) > 700;
+}
+
 
 void mcu_hal::poll()
 {
     update_led();
 
-    // check for button release
-    if (is_button_down)
-        is_button_down = gpio_get(button_port, button_pin) == 0;
+    // check for button change
+    bool is_down = gpio_get(button_port, button_pin) == 0;
+
+    if (is_button_down != is_down) {
+
+        // check for button release after the button has been held down for more than 50ms
+        if (!is_down && (millis() - last_button_change_time) > 50)
+            button_has_been_pressed = true;
+
+        is_button_down = is_down;
+        last_button_change_time = millis();
+    }
 }
 
 uint32_t mcu_hal::millis() { return millis_count; }

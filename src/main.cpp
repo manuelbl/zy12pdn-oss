@@ -33,6 +33,8 @@ static uint8_t selected_capability = 0;
 // others: voltage in V
 static uint16_t desired_mode = 0;
 
+static bool in_config_mode = false;
+
 static void sink_callback(callback_event event);
 static void update_led();
 static void switch_voltage();
@@ -49,10 +51,6 @@ int main()
     nvs.init(3);
     DEBUG_INIT();
 
-    // Enter configuration mode if button is being pressed on power up
-    if (hal.has_button_been_pressed())
-        run_config_mode();
-
     // Read the configured mode
     if (!nvs.read(nvs_voltage_key, &desired_mode))
         desired_mode = 0;
@@ -62,7 +60,19 @@ int main()
     power_sink.set_event_callback(sink_callback);
     power_sink.init();
 
-    // Work in regular loop until SWD activity is detected
+    // Wait 60ms for button presses
+    uint32_t start = hal.millis();
+    while (hal.millis() - start < 60) {
+        hal.poll();
+
+        // Enter configuration mode if button is being pressed on power up
+        if (hal.is_button_being_pressed())
+            run_config_mode();
+    }
+
+    update_led();
+
+    // Work in regular loop
     while (true)
         loop();
 }
@@ -132,7 +142,8 @@ void sink_callback(callback_event event)
         break;
     }
 
-    update_led();
+    if (!in_config_mode)
+        update_led();
 }
 
 // Called when the source advertises new capabilities
@@ -140,9 +151,13 @@ void sink_callback(callback_event event)
 // requested in time, the power suplly will reset.
 void on_source_caps_changed()
 {
+    // default: 5V
     int voltage = 5000;
 
-    if (desired_mode == 0) {
+    if (in_config_mode) {
+        // Use default of 5V
+
+    } else if (desired_mode == 0) {
         // Use first advertised voltage
         selected_capability = 0;
         voltage = power_sink.source_caps[0].voltage;
@@ -153,7 +168,7 @@ void on_source_caps_changed()
             voltage = std::max(voltage, static_cast<int>(power_sink.source_caps[i].voltage));
 
     } else {
-        // Search for desried voltage (if not found -> 5V)
+        // Search for desried voltage
         for (int i = 0; i < power_sink.num_source_caps; i++) {
             if (power_sink.source_caps[i].voltage == desired_mode * 1000)
                 voltage = power_sink.source_caps[i].voltage;
@@ -200,45 +215,40 @@ void update_led()
 
 void run_config_mode()
 {
-    // Wait until button has been released
+    in_config_mode = true;
     hal.set_led(color::cyan, 70, 70);
-    while (hal.is_button_held_down())
+
+    // wait until button has been released
+    while (hal.is_button_being_pressed()) {
         hal.poll();
+        power_sink.poll();
+    }
+
+    // if it wasn't a proper press (50ms or more), return to regular mode
+    if (!hal.has_button_been_pressed()) {
+        in_config_mode = false;
+        return;
+    }
+
+    DEBUG_LOG("Configuration mode\r\n", 0);
 
     int mode = 0;
-    uint32_t button_pressed_time = 0;
-    bool is_button_pressed = false;
     set_led_prog_mode(mode);
 
     while (true) {
         hal.poll();
+        power_sink.poll();
 
         if (hal.has_button_been_pressed()) {
-            // Button pressed -> record time
-            button_pressed_time = hal.millis();
-            is_button_pressed = true;
+            // Button has been pressed and released -> switch to next mode
+            mode++;
+            if (mode > 5)
+                mode = 0;
+            set_led_prog_mode(mode);
 
-        } else if (is_button_pressed) {
-            if (!hal.is_button_held_down()) {
-                // Button has been released
-                is_button_pressed = false;
-                uint32_t duration = hal.millis() - button_pressed_time;
-
-                if (duration < 500) {
-                    // Button has been pressed for a short time -> switch to next mode
-                    mode++;
-                    if (mode > 5)
-                        mode = 0;
-                    set_led_prog_mode(mode);
-
-                } else {
-                    // Button has been pressed for a long time -> save selected voltage
-                    save_mode(mode);
-                }
-            } else if (hal.has_expired(button_pressed_time + 1000)) {
-                // Button has been pressed for a long time -> save selected voltage
-                save_mode(mode);
-            }
+        } else if (hal.is_long_press()) {
+            // Button has been pressed for a long time -> save selected voltage
+            save_mode(mode); // will not return
         }
     }
 }

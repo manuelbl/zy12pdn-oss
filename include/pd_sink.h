@@ -63,13 +63,33 @@ enum class callback_event {
     power_ready
 };
 
+/**
+ * USB PD power sink.
+ * 
+ * Implements the USB-PD protocol and the negotiation with a power source.
+ */
 struct pd_sink {
     typedef void (*event_callback)(callback_event event);
 
+    /**
+     * Initialize sink and start listening for USB-PD messages.
+     */
     void init();
 
+    /**
+     * Sets the handler to be notified about USB-PD events.
+     * 
+     * Set the handler before calling `init()`.
+     * 
+     * @param cb 
+     */
     void set_event_callback(event_callback cb);
 
+    /**
+     * Polls the power sink for events.
+     * 
+     * This function needs to be called regularly from the main loop.
+     */
     void poll();
 
     /**
