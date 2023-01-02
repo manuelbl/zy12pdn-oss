@@ -48,6 +48,7 @@ void mcu_hal::init()
     systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
     systick_set_reload(rcc_ahb_frequency / 1000 - 1);
     systick_interrupt_enable();
+    systick_clear();
     systick_counter_enable();
 
     // Initialize LED
