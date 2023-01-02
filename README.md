@@ -46,13 +46,15 @@ The LED color indicates either the active voltage (interactive and fixed voltage
 
 | Color  | Interactive | Fixed Voltage | Configuration |
 | :----- | :-- | :-- | :-- |
-| Red    | 5V  | Configured voltage is not available | Configure interactive mode. |
+| Red    | 5V  | Configured voltage is not available † | Configure interactive mode. |
 | Yellow | 9V  | 9V  | Configure fixed voltage mode with 9V. |
 | Green  | 12V | 12V | Configure fixed voltage mode with 12V. |
 | Cyan   | 15V | 15V | Configure fixed voltage mode with 15V. |
 | Blue   | 20V | 20V | Configure fixed voltage mode with 20V. |
 | Purple | –   | -   | Configure fixed voltage mode with highest available voltage. |
 
+
+*† The LED will also blink in red if the board has been configured for the highest available voltage and the highest available voltage is neither 9V, 12V, 15V nor 20V.*
 
 ### Configuring the Board
 

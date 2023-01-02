@@ -59,10 +59,14 @@ struct pd_header {
     {
         return static_cast<pd_msg_type>((num_data_objs(header) != 0) << 7 | (header & 0x1f));
     }
-    static uint16_t create_ctrl(pd_msg_type msg_type) { return (*msg_type & 0x1f) | 0x40; }
-    static uint16_t create_data(pd_msg_type msg_type, int num_data_objs)
+    static int spec_rev(uint16_t header) { return ((header >> 6) & 0x03) + 1; }
+    static uint16_t create_ctrl(pd_msg_type msg_type, int rev = 1)
     {
-        return ((num_data_objs & 0x07) << 12) | (*msg_type & 0x1f) | 0x40;
+        return (*msg_type & 0x1f) | 0x40 | ((rev - 1) << 6);
+    }
+    static uint16_t create_data(pd_msg_type msg_type, int num_data_objs, int rev = 1)
+    {
+        return ((num_data_objs & 0x07) << 12) | (*msg_type & 0x1f) | 0x40 | ((rev - 1) << 6);
     }
 };
 

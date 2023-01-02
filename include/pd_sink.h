@@ -164,6 +164,9 @@ struct pd_sink {
     /// Active maximum current (in mA)
     uint16_t active_max_current = 900;
 
+    /// Specification revision (of last message)
+    uint8_t spec_rev = 1;
+
 private:
     void handle_msg(uint16_t header, const uint8_t* payload);
     void handle_src_cap_msg(uint16_t header, const uint8_t* payload);
