@@ -18,12 +18,11 @@
 
 namespace usb_pd {
 
-static const char* const PRODUCT_IDS[] = { "FUSB302B__X", "FUSB302B01MPX", "FUSB302B10MPX", "FUSB302B11MPX" };
+static const char* const PRODUCT_IDS[] = {"FUSB302B__X", "FUSB302B01MPX", "FUSB302B10MPX", "FUSB302B11MPX"};
 
 static const char* VERSIONS = "????????ABCDEFGH";
 
-void fusb302::get_device_id(char* device_id_buf)
-{
+void fusb302::get_device_id(char* device_id_buf) {
     uint8_t device_id = read_register(reg_device_id);
     uint8_t version_id = device_id >> 4;
     uint8_t product_id = (device_id >> 2) & 0x03;
@@ -36,8 +35,7 @@ void fusb302::get_device_id(char* device_id_buf)
     strcat(device_id_buf, piece);
 }
 
-void fusb302::init()
-{
+void fusb302::init() {
     // full reset
     write_register(reg_reset, reset_sw_res | reset_pd_reset);
     hal.delay(10);
@@ -59,8 +57,7 @@ void fusb302::init()
     events.clear();
 }
 
-void fusb302::start_sink()
-{
+void fusb302::start_sink() {
     // As the interrupt line is also used as SWDIO, the FUSB302B interrupt is
     // not activated until activity on CC1 or CC2 has been detected.
     // Thus, CC1 and CC2 have to be polled manually even though the FUSB302B
@@ -72,8 +69,7 @@ void fusb302::start_sink()
     start_measurement(1);
 }
 
-void fusb302::poll()
-{
+void fusb302::poll() {
     if (hal.is_interrupt_asserted()) {
         check_for_interrupts();
 
@@ -89,8 +85,7 @@ void fusb302::poll()
     }
 }
 
-void fusb302::start_measurement(int cc)
-{
+void fusb302::start_measurement(int cc) {
     uint8_t sw0 = cc == 1 ? switches0_meas_cc1 : switches0_meas_cc2;
     sw0 = sw0 | switches0_pdwn1 | switches0_pdwn2;
 
@@ -100,8 +95,7 @@ void fusb302::start_measurement(int cc)
     measuring_cc = cc;
 }
 
-void fusb302::check_measurement()
-{
+void fusb302::check_measurement() {
     read_register(reg_status0);
     uint8_t status0 = read_register(reg_status0);
     if ((status0 & status0_bc_lvl_mask) == 0) {
@@ -114,8 +108,7 @@ void fusb302::check_measurement()
     measuring_cc = 0;
 }
 
-void fusb302::check_for_interrupts()
-{
+void fusb302::check_for_interrupts() {
     bool may_have_message = false;
 
     uint8_t interrupt = read_register(reg_interrupt);
@@ -152,8 +145,7 @@ void fusb302::check_for_interrupts()
         check_for_msg();
 }
 
-void fusb302::check_for_msg()
-{
+void fusb302::check_for_msg() {
     while (true) {
         uint8_t status1 = read_register(reg_status1);
         if ((status1 & status1_rx_empty) == status1_rx_empty)
@@ -179,8 +171,7 @@ void fusb302::check_for_msg()
     }
 }
 
-void fusb302::establish_retry_wait()
-{
+void fusb302::establish_retry_wait() {
     DEBUG_LOG("Reset\r\n", 0);
 
     // Reset FUSB302
@@ -190,10 +181,11 @@ void fusb302::establish_retry_wait()
     events.add_item(event(event_kind::state_changed));
 }
 
-void fusb302::establish_usb_20() { start_sink(); }
+void fusb302::establish_usb_20() {
+    start_sink();
+}
 
-void fusb302::establish_usb_pd_wait(int cc)
-{
+void fusb302::establish_usb_pd_wait(int cc) {
     // Configure INT_N pin
     hal.init_int_n();
 
@@ -207,11 +199,10 @@ void fusb302::establish_usb_pd_wait(int cc)
     write_register(reg_maskb, maskb_m_none);
     // Enable pull down and CC monitoring
     write_register(reg_switches0,
-        switches0_pdwn1 | switches0_pdwn2 | (cc == 1 ? switches0_meas_cc1 : switches0_meas_cc2));
+                   switches0_pdwn1 | switches0_pdwn2 | (cc == 1 ? switches0_meas_cc1 : switches0_meas_cc2));
     // Configure: auto CRC and BMC transmit on CC pin
     write_register(reg_switches1,
-        switches1_specrev_rev_2_0 | switches1_auto_crc
-            | (cc == 1 ? switches1_txcc1 : switches1_txcc2));
+                   switches1_specrev_rev_2_0 | switches1_auto_crc | (cc == 1 ? switches1_txcc1 : switches1_txcc2));
     // Enable interrupt
     write_register(reg_control0, control0_none);
 
@@ -219,22 +210,19 @@ void fusb302::establish_usb_pd_wait(int cc)
     start_timeout(300);
 }
 
-void fusb302::establish_usb_pd()
-{
+void fusb302::establish_usb_pd() {
     state_ = fusb302_state::usb_pd;
     cancel_timeout();
     DEBUG_LOG("USB PD comm\r\n", 0);
     events.add_item(event(event_kind::state_changed));
 }
 
-void fusb302::start_timeout(uint32_t ms)
-{
+void fusb302::start_timeout(uint32_t ms) {
     is_timeout_active = true;
     timeout_expiration = hal.millis() + ms;
 }
 
-bool fusb302::has_timeout_expired()
-{
+bool fusb302::has_timeout_expired() {
     if (!is_timeout_active)
         return false;
 
@@ -246,14 +234,19 @@ bool fusb302::has_timeout_expired()
     return true;
 }
 
-void fusb302::cancel_timeout() { is_timeout_active = false; }
+void fusb302::cancel_timeout() {
+    is_timeout_active = false;
+}
 
-bool fusb302::has_event() { return events.num_items() != 0; }
+bool fusb302::has_event() {
+    return events.num_items() != 0;
+}
 
-event fusb302::pop_event() { return events.pop_item(); }
+event fusb302::pop_event() {
+    return events.pop_item();
+}
 
-uint8_t fusb302::read_message(uint16_t& header, uint8_t* payload)
-{
+uint8_t fusb302::read_message(uint16_t& header, uint8_t* payload) {
     // Read token and header
     uint8_t buf[3];
     hal.pd_ctrl_read(reg_fifos, 3, buf);
@@ -276,14 +269,12 @@ uint8_t fusb302::read_message(uint16_t& header, uint8_t* payload)
     return len;
 }
 
-void fusb302::send_header_message(pd_msg_type msg_type)
-{
+void fusb302::send_header_message(pd_msg_type msg_type) {
     uint16_t header = pd_header::create_ctrl(msg_type);
     send_message(header, nullptr);
 }
 
-void fusb302::send_message(uint16_t header, const uint8_t* payload)
-{
+void fusb302::send_message(uint16_t header, const uint8_t* payload) {
     // Enable internal oscillator
     write_register(reg_power, power_pwr_all);
 
@@ -315,20 +306,17 @@ void fusb302::send_message(uint16_t header, const uint8_t* payload)
         next_message_id = 0;
 }
 
-uint8_t fusb302::read_register(reg r)
-{
+uint8_t fusb302::read_register(reg r) {
     uint8_t val;
     hal.pd_ctrl_read(r, 1, &val);
     return val;
 }
 
-void fusb302::read_registers(reg start_reg, int n, uint8_t* target)
-{
+void fusb302::read_registers(reg start_reg, int n, uint8_t* target) {
     hal.pd_ctrl_read(start_reg, n, target);
 }
 
-void fusb302::write_register(reg r, uint8_t value)
-{
+void fusb302::write_register(reg r, uint8_t value) {
     hal.pd_ctrl_write(r, 1, &value);
 }
 

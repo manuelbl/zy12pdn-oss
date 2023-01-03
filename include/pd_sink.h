@@ -64,7 +64,7 @@ enum class callback_event {
 
 /**
  * USB PD power sink.
- * 
+ *
  * Implements the USB-PD protocol and the negotiation with a power source.
  */
 struct pd_sink {
@@ -77,16 +77,16 @@ struct pd_sink {
 
     /**
      * Sets the handler to be notified about USB-PD events.
-     * 
+     *
      * Set the handler before calling `init()`.
-     * 
-     * @param cb 
+     *
+     * @param cb callback handler
      */
     void set_event_callback(event_callback cb);
 
     /**
      * Polls the power sink for events.
-     * 
+     *
      * This function needs to be called regularly from the main loop.
      */
     void poll();
@@ -100,7 +100,7 @@ struct pd_sink {
      *
      * If the source hasn't advertised a matching voltage, no message is sent and
      * -1 is returned.
-     * 
+     *
      * If a programmable power supply (PPS) capability is selected, the sink starts
      * to send a `request` message every 8 seconds as required by the standard.
      * Otherwise, the source will revert to 5V after 10 seconds.
@@ -109,7 +109,7 @@ struct pd_sink {
      * reduce the voltage until the current is no longer exceeded. A fixed supply uses
      * the specified current to distribute the current between multiple outputs. If
      * exceed, it might revert to 5V or stop supplying power altogether.
-     * 
+     *
      * @param voltage the desired voltage (in mV)
      * @param max_current the highest current (in mA) the sink will draw,
      *   or 0 for the maximum current the source can provide for the selected voltage
@@ -119,19 +119,19 @@ struct pd_sink {
 
     /**
      * Requests the specified voltage from the specified source capability.
-     * 
+     *
      * The source will respond with `accepted` and `ps_ready` (if successful)
      * or `rejected` if unsucessful. Separate events will be triggered for these
      * messages.
-     * 
+     *
      * If the specified voltage or current is out of the range for the specified
      * source capability or if the index is invalid, no request is sent and -1 is returned.
-     * 
+     *
      * If the sink draws more power the specified maximum current, a PPS capability will
      * reduce the voltage until the current is no longer exceeded. A fixed supply uses
      * the specified current to distribute the current between multiple outputs. If
      * exceed, it might revert to 5V or stop supplying power altogether.
-     * 
+     *
      * @param index index of the source capability
      * @param voltage the desired voltage (in mV)
      * @param max_current the highest current (in mA) the sink will draw (at least 25mA)
@@ -166,7 +166,7 @@ struct pd_sink {
     /// Specification revision (of last message)
     uint8_t spec_rev = 1;
 
-private:
+  private:
     void handle_msg(uint16_t header, const uint8_t* payload);
     void handle_src_cap_msg(uint16_t header, const uint8_t* payload);
     bool update_protocol();

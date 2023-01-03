@@ -12,7 +12,6 @@
 
 #include <stdint.h>
 
-
 namespace usb_pd {
 
 /// FUSB302 register addresses

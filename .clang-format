@@ -1,5 +1,8 @@
-BasedOnStyle: WebKit
+BasedOnStyle: LLVM
 
 ColumnLimit: 120
 IndentWidth: 4
 ContinuationIndentWidth: 4
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+PointerAlignment: Left

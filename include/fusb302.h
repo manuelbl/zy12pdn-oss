@@ -31,7 +31,11 @@ enum class fusb302_state {
 };
 
 /// Event kind
-enum class event_kind { none, state_changed, message_received };
+enum class event_kind {
+    none,
+    state_changed,
+    message_received
+};
 
 /// Event queue by FUSB302 instance for clients (such as `pd_sink`)
 struct event {
@@ -44,15 +48,12 @@ struct event {
     /// Message payload (valid if event_kind = `message_received`, possibly `null`)
     const uint8_t* msg_payload;
 
-    event() : kind(event_kind::none) { }
+    event() : kind(event_kind::none) {}
 
-    event(event_kind evt_kind) : kind(evt_kind) { }
+    event(event_kind evt_kind) : kind(evt_kind) {}
 
     event(uint16_t header, const uint8_t* payload = nullptr)
-        : kind(event_kind::message_received)
-        , msg_header(header)
-        , msg_payload(payload)
-    { }
+        : kind(event_kind::message_received), msg_header(header), msg_payload(payload) {}
 };
 
 /**
@@ -114,7 +115,7 @@ struct fusb302 {
     /// Retrieves the oldest event and removes it from the queue
     event pop_event();
 
-private:
+  private:
     void check_for_interrupts();
     void check_for_msg();
     void start_measurement(int cc);

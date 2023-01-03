@@ -25,16 +25,16 @@ struct eeprom {
 
     /**
      * Initializes the EEPROM (at startup).
-     * 
+     *
      * Restores the pages to a known good state if needed.
-     * 
+     *
      * @param num_keys number of keys (0 to `num_keys` - 1).
      */
     static void init(int num_keys);
 
     /**
      * Reads the 16 bit value from the specified key.
-     * 
+     *
      * @param key key
      * @param value reference to variable receiving value
      * @return `true` if value was found, `false` otherwise
@@ -43,17 +43,24 @@ struct eeprom {
 
     /**
      * Writes a 16 bit value for the specified key.
-     * 
+     *
      * @param key key
      * @param value value to write
      * @return `true` if the write was successful, `false` otherwise
      */
     static bool write(uint16_t key, uint16_t value);
 
-private:
-    enum class status_e { no_valid_page, page_full, op_completed };
+  private:
+    enum class status_e {
+        no_valid_page,
+        page_full,
+        op_completed
+    };
 
-    enum class operation_e { read, write };
+    enum class operation_e {
+        read,
+        write
+    };
 
     static int num_keys_;
 

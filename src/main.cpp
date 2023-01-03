@@ -44,8 +44,7 @@ static void run_config_mode();
 static void set_led_prog_mode(int mode);
 static void save_mode(int mode);
 
-int main()
-{
+int main() {
     hal.init();
     hal.set_led(color::blue, 800, 600);
     nvs.init(3);
@@ -78,8 +77,7 @@ int main()
 }
 
 // Regular operations loop
-void loop()
-{
+void loop() {
     hal.poll();
     power_sink.poll();
 
@@ -89,8 +87,7 @@ void loop()
 }
 
 // Change the voltage to the next source capability
-void switch_voltage()
-{
+void switch_voltage() {
     // Only works with USB PD
     if (power_sink.protocol() != pd_protocol::usb_pd)
         return;
@@ -111,12 +108,11 @@ void switch_voltage()
 }
 
 // Called when the USB PD controller triggers an event
-void sink_callback(callback_event event)
-{
+void sink_callback(callback_event event) {
 #if defined(PD_DEBUG)
     int index = static_cast<int>(event);
-    const char* const event_names[]
-        = { "protocol_changed", "source_caps_changed", "power_accepted", "power_rejected", "power_ready" };
+    const char* const event_names[] = {"protocol_changed", "source_caps_changed", "power_accepted", "power_rejected",
+                                       "power_ready"};
 
     DEBUG_LOG("Event: ", 0);
     DEBUG_LOG(event_names[index], 0);
@@ -149,8 +145,7 @@ void sink_callback(callback_event event)
 // Called when the source advertises new capabilities
 // Be careful with debug output. If one of the capbilities is not
 // requested in time, the power suplly will reset.
-void on_source_caps_changed()
-{
+void on_source_caps_changed() {
     // default: 5V
     int voltage = 5000;
 
@@ -182,8 +177,7 @@ void on_source_caps_changed()
     power_sink.request_power(voltage);
 }
 
-void update_led()
-{
+void update_led() {
     // LED colors indicates voltage
     color c = color::red;
     int flash_duration = 0;
@@ -217,8 +211,7 @@ void update_led()
     hal.set_led(c, flash_duration, flash_duration);
 }
 
-void run_config_mode()
-{
+void run_config_mode() {
     in_config_mode = true;
     hal.set_led(color::cyan, 70, 70);
 
@@ -258,16 +251,14 @@ void run_config_mode()
 }
 
 // Set LED color for selected mode
-void set_led_prog_mode(int mode)
-{
-    const color colors[] = { color::red, color::yellow, color::green, color::cyan, color::blue, color::purple };
+void set_led_prog_mode(int mode) {
+    const color colors[] = {color::red, color::yellow, color::green, color::cyan, color::blue, color::purple};
     hal.set_led(colors[mode], 80, 40);
 }
 
 // Save selected mode in non-volatile storage
-void save_mode(int mode)
-{
-    const uint16_t voltages[] = { 0, 9, 12, 15, 20, 100 };
+void save_mode(int mode) {
+    const uint16_t voltages[] = {0, 9, 12, 15, 20, 100};
     nvs.write(nvs_voltage_key, voltages[mode]);
     hal.set_led(color::off);
 

@@ -19,8 +19,7 @@ namespace usb_pd {
 
 static char version_id[24];
 
-void pd_sink::init()
-{
+void pd_sink::init() {
     pd_controller.init();
 
     pd_controller.get_device_id(version_id);
@@ -31,10 +30,11 @@ void pd_sink::init()
     update_protocol();
 }
 
-void pd_sink::set_event_callback(event_callback cb) { event_callback_ = cb; }
+void pd_sink::set_event_callback(event_callback cb) {
+    event_callback_ = cb;
+}
 
-void pd_sink::poll()
-{
+void pd_sink::poll() {
     // process events from PD controller
     while (true) {
         pd_controller.poll();
@@ -62,8 +62,7 @@ void pd_sink::poll()
         request_power_from_capability(selected_pps_index, active_voltage, active_max_current);
 }
 
-void pd_sink::handle_msg(uint16_t header, const uint8_t* payload)
-{
+void pd_sink::handle_msg(uint16_t header, const uint8_t* payload) {
     spec_rev = pd_header::spec_rev(header);
 
     pd_msg_type type = pd_header::message_type(header);
@@ -92,8 +91,7 @@ void pd_sink::handle_msg(uint16_t header, const uint8_t* payload)
     }
 }
 
-void pd_sink::handle_src_cap_msg(uint16_t header, const uint8_t* payload)
-{
+void pd_sink::handle_src_cap_msg(uint16_t header, const uint8_t* payload) {
     int n = pd_header::num_data_objs(header);
 
     num_source_caps = 0;
@@ -143,8 +141,7 @@ void pd_sink::handle_src_cap_msg(uint16_t header, const uint8_t* payload)
     notify(callback_event::source_caps_changed);
 }
 
-bool pd_sink::update_protocol()
-{
+bool pd_sink::update_protocol() {
     auto old_protocol = protocol_;
 
     if (pd_controller.state() == fusb302_state::usb_pd) {
@@ -159,14 +156,12 @@ bool pd_sink::update_protocol()
     return protocol_ != old_protocol;
 }
 
-int pd_sink::request_power(int voltage, int max_current)
-{
+int pd_sink::request_power(int voltage, int max_current) {
     // Lookup fixed voltage capabilities first
     int index = -1;
     for (int i = 0; i < num_source_caps; i++) {
         auto cap = source_caps + i;
-        if (cap->supply_type == pd_supply_type::fixed
-                && voltage >= cap->min_voltage && voltage <= cap->voltage) {
+        if (cap->supply_type == pd_supply_type::fixed && voltage >= cap->min_voltage && voltage <= cap->voltage) {
             index = i;
             if (max_current == 0)
                 max_current = cap->max_current;
@@ -178,8 +173,7 @@ int pd_sink::request_power(int voltage, int max_current)
     if (index == -1) {
         for (int i = 0; i < num_source_caps; i++) {
             auto cap = source_caps + i;
-            if (cap->supply_type == pd_supply_type::pps
-                    && voltage >= cap->min_voltage && voltage <= cap->voltage) {
+            if (cap->supply_type == pd_supply_type::pps && voltage >= cap->min_voltage && voltage <= cap->voltage) {
                 if (max_current == 0) {
                     max_current = cap->max_current;
                     index = i;
@@ -200,8 +194,7 @@ int pd_sink::request_power(int voltage, int max_current)
     return request_power_from_capability(index, voltage, max_current);
 }
 
-int pd_sink::request_power_from_capability(int index, int voltage, int max_current)
-{
+int pd_sink::request_power_from_capability(int index, int voltage, int max_current) {
     if (index < 0 || index >= num_source_caps)
         return -1;
     auto cap = source_caps + index;
@@ -231,8 +224,7 @@ int pd_sink::request_power_from_capability(int index, int voltage, int max_curre
     return cap->obj_pos;
 }
 
-void pd_sink::set_request_payload_fixed(uint8_t* payload, int obj_pos, int voltage, int current)
-{
+void pd_sink::set_request_payload_fixed(uint8_t* payload, int obj_pos, int voltage, int current) {
     const uint8_t no_usb_suspend = 1;
     const uint8_t usb_comm_capable = 2;
 
@@ -248,8 +240,7 @@ void pd_sink::set_request_payload_fixed(uint8_t* payload, int obj_pos, int volta
     requested_max_current = current * 10;
 }
 
-void pd_sink::set_request_payload_pps(uint8_t* payload, int obj_pos, int voltage, int current)
-{
+void pd_sink::set_request_payload_pps(uint8_t* payload, int obj_pos, int voltage, int current) {
     const uint8_t no_usb_suspend = 1;
     const uint8_t usb_comm_capable = 2;
 
@@ -268,8 +259,7 @@ void pd_sink::set_request_payload_pps(uint8_t* payload, int obj_pos, int voltage
     requested_max_current = current * 50;
 }
 
-void pd_sink::notify(callback_event event)
-{
+void pd_sink::notify(callback_event event) {
     if (event_callback_ == nullptr)
         return;
     event_callback_(event);

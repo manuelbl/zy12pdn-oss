@@ -23,7 +23,7 @@ namespace usb_pd {
  * used by a single reader and a single writer.
  */
 template <class T, int N> struct queue {
-private:
+  private:
     /// Allocation size
     static constexpr int BUF_SIZE = N + 1;
 
@@ -36,7 +36,7 @@ private:
 
     T buffer[BUF_SIZE];
 
-public:
+  public:
     /// Constructs a new queue instance
     queue();
 
@@ -59,11 +59,9 @@ public:
     void clear();
 };
 
-template <class T, int N>
-queue<T, N>::queue() : buf_head(0), buf_tail(0) { }
+template <class T, int N> queue<T, N>::queue() : buf_head(0), buf_tail(0) {}
 
-template <class T, int N> int queue<T, N>::avail_items()
-{
+template <class T, int N> int queue<T, N>::avail_items() {
     int head = buf_head;
     int tail = buf_tail;
 
@@ -74,8 +72,7 @@ template <class T, int N> int queue<T, N>::avail_items()
     }
 }
 
-template <class T, int N> int queue<T, N>::num_items()
-{
+template <class T, int N> int queue<T, N>::num_items() {
     int head = buf_head;
     int tail = buf_tail;
 
@@ -86,8 +83,7 @@ template <class T, int N> int queue<T, N>::num_items()
     }
 }
 
-template <class T, int N> void queue<T, N>::add_item(T&& item)
-{
+template <class T, int N> void queue<T, N>::add_item(T&& item) {
     int head = buf_head;
 
     int new_head = head + 1;
@@ -101,8 +97,7 @@ template <class T, int N> void queue<T, N>::add_item(T&& item)
     buf_head = new_head;
 }
 
-template <class T, int N> void queue<T, N>::add_item(T& item)
-{
+template <class T, int N> void queue<T, N>::add_item(T& item) {
     int head = buf_head;
 
     int new_head = head + 1;
@@ -116,8 +111,7 @@ template <class T, int N> void queue<T, N>::add_item(T& item)
     buf_head = new_head;
 }
 
-template <class T, int N> T queue<T, N>::pop_item()
-{
+template <class T, int N> T queue<T, N>::pop_item() {
     int tail = buf_tail;
     if (tail == buf_head)
         return T(); // queue is empty
@@ -130,8 +124,7 @@ template <class T, int N> T queue<T, N>::pop_item()
     return std::move(buffer[tail]);
 }
 
-template <class T, int N> void queue<T, N>::clear()
-{
+template <class T, int N> void queue<T, N>::clear() {
     buf_head = 0;
     buf_tail = 0;
 }

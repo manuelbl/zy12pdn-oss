@@ -13,8 +13,7 @@
 
 namespace usb_pd {
 
-void i2c_bit_bang::init()
-{
+void i2c_bit_bang::init() {
     // SCL is driven high and low as the board has no pull-up resistor.
     // Therefore, clock stretching is not supported.
     gpio_set(scl_port, scl_pin);
@@ -27,8 +26,7 @@ void i2c_bit_bang::init()
     gpio_set_output_options(sda_port, GPIO_OTYPE_OD, GPIO_OSPEED_50MHZ, sda_pin);
 }
 
-bool i2c_bit_bang::write_data(uint8_t addr, uint8_t reg, int data_len, const uint8_t* data, bool end_with_stop)
-{
+bool i2c_bit_bang::write_data(uint8_t addr, uint8_t reg, int data_len, const uint8_t* data, bool end_with_stop) {
     write_start_cond();
     bool ack = write_byte(addr << 1);
     ack = ack && write_byte(reg);
@@ -40,8 +38,7 @@ bool i2c_bit_bang::write_data(uint8_t addr, uint8_t reg, int data_len, const uin
     return ack;
 }
 
-bool i2c_bit_bang::read_data(uint8_t addr, uint8_t reg, int data_len, uint8_t* data)
-{
+bool i2c_bit_bang::read_data(uint8_t addr, uint8_t reg, int data_len, uint8_t* data) {
     bool ack = write_data(addr, reg, 0, nullptr, false);
 
     if (ack)
@@ -54,8 +51,7 @@ bool i2c_bit_bang::read_data(uint8_t addr, uint8_t reg, int data_len, uint8_t* d
     return ack;
 }
 
-void i2c_bit_bang::write_start_cond()
-{
+void i2c_bit_bang::write_start_cond() {
     if (is_started) {
         set_sda();
         delay();
@@ -69,8 +65,7 @@ void i2c_bit_bang::write_start_cond()
     is_started = true;
 }
 
-void i2c_bit_bang::write_stop_cond()
-{
+void i2c_bit_bang::write_stop_cond() {
     clear_sda();
     delay();
     set_scl();
@@ -80,8 +75,7 @@ void i2c_bit_bang::write_stop_cond()
     is_started = false;
 }
 
-bool i2c_bit_bang::write_byte(uint8_t value)
-{
+bool i2c_bit_bang::write_byte(uint8_t value) {
     for (int i = 0; i < 8; i++) {
         write_bit((value & 0x80) != 0);
         value <<= 1;
@@ -90,8 +84,7 @@ bool i2c_bit_bang::write_byte(uint8_t value)
     return !read_bit();
 }
 
-uint8_t i2c_bit_bang::read_byte(bool nack)
-{
+uint8_t i2c_bit_bang::read_byte(bool nack) {
     uint8_t value = 0;
     for (int i = 0; i < 8; i++) {
         value <<= 1;
@@ -103,8 +96,7 @@ uint8_t i2c_bit_bang::read_byte(bool nack)
     return value;
 }
 
-void i2c_bit_bang::write_bit(bool bit)
-{
+void i2c_bit_bang::write_bit(bool bit) {
     if (bit) {
         set_sda();
     } else {
@@ -116,8 +108,7 @@ void i2c_bit_bang::write_bit(bool bit)
     clear_scl();
 }
 
-bool i2c_bit_bang::read_bit()
-{
+bool i2c_bit_bang::read_bit() {
     set_sda();
     delay();
     set_scl();
@@ -127,8 +118,7 @@ bool i2c_bit_bang::read_bit()
     return bit;
 }
 
-void i2c_bit_bang::delay()
-{
+void i2c_bit_bang::delay() {
     for (int i = 10; i > 0; i--) {
         asm("nop");
     }

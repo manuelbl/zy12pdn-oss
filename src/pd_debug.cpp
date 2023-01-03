@@ -43,8 +43,7 @@ static volatile int tx_size;
 
 static char format_buf[80];
 
-static void uart_set_baudrate(int baudrate)
-{
+static void uart_set_baudrate(int baudrate) {
     usart_disable(USART1);
     usart_set_baudrate(USART1, baudrate);
     usart_set_databits(USART1, 8);
@@ -54,8 +53,7 @@ static void uart_set_baudrate(int baudrate)
     usart_enable(USART1);
 }
 
-static void uart_init(int baudrate)
-{
+static void uart_init(int baudrate) {
     tx_buf_head = tx_buf_tail = 0;
     tx_size = 0;
 
@@ -93,8 +91,7 @@ static void uart_init(int baudrate)
     usart_enable(USART1);
 }
 
-static void uart_start_tx_dma(const uint8_t* buf, int len)
-{
+static void uart_start_tx_dma(const uint8_t* buf, int len) {
     // set transmit chunk
     dma_set_memory_address(DMA1, DMA_CHANNEL2, (uint32_t)buf);
     dma_set_number_of_data(DMA1, DMA_CHANNEL2, len);
@@ -104,8 +101,7 @@ static void uart_start_tx_dma(const uint8_t* buf, int len)
     dma_enable_channel(DMA1, DMA_CHANNEL2);
 }
 
-static void uart_start_transmit()
-{
+static void uart_start_transmit() {
     int start_pos;
 
     if (tx_size != 0 || tx_buf_head == tx_buf_tail)
@@ -123,8 +119,7 @@ static void uart_start_transmit()
     uart_start_tx_dma(tx_buf + start_pos, tx_size);
 }
 
-static void uart_transmit(const uint8_t* data, size_t len)
-{
+static void uart_transmit(const uint8_t* data, size_t len) {
     size_t size;
 
     int buf_tail = tx_buf_tail;
@@ -158,10 +153,11 @@ static void uart_transmit(const uint8_t* data, size_t len)
         uart_transmit(data + size, len - size);
 }
 
-static void uart_print(const char* str) { uart_transmit((const uint8_t*)str, strlen(str)); }
+static void uart_print(const char* str) {
+    uart_transmit((const uint8_t*)str, strlen(str));
+}
 
-void uart_on_tx_complete()
-{
+void uart_on_tx_complete() {
     // Update TX buffer
     int buf_tail = tx_buf_tail + tx_size;
     if (buf_tail >= uart_tx_buf_len)
@@ -173,22 +169,19 @@ void uart_on_tx_complete()
     uart_start_transmit();
 }
 
-void debug_init()
-{
+void debug_init() {
     uart_init(115200);
     uart_print("ZY12PDN OSS\r\n");
 }
 
-void debug_log(const char* msg, uint32_t val)
-{
+void debug_log(const char* msg, uint32_t val) {
     int len = snprintf(format_buf, sizeof(format_buf), msg, val);
     uart_transmit((const uint8_t*)format_buf, len);
 }
 
 } // namespace usb_pd
 
-extern "C" void dma1_channel2_3_dma2_channel1_2_isr(void)
-{
+extern "C" void dma1_channel2_3_dma2_channel1_2_isr(void) {
     if (dma_get_interrupt_flag(DMA1, DMA_CHANNEL2, DMA_TCIF)) {
         // Disable DMA
         dma_disable_channel(DMA1, DMA_CHANNEL2);

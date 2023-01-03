@@ -37,8 +37,7 @@ static i2c_bit_bang i2c;
 
 static volatile uint32_t millis_count;
 
-void mcu_hal::init()
-{
+void mcu_hal::init() {
     rcc_clock_setup_in_hsi_out_48mhz();
 
     rcc_periph_clock_enable(RCC_GPIOA);
@@ -66,26 +65,27 @@ void mcu_hal::init()
     button_has_been_pressed = false;
 }
 
-void mcu_hal::init_int_n() { gpio_mode_setup(fusb302_int_n_port, GPIO_MODE_INPUT, GPIO_PUPD_NONE, fusb302_int_n_pin); }
+void mcu_hal::init_int_n() {
+    gpio_mode_setup(fusb302_int_n_port, GPIO_MODE_INPUT, GPIO_PUPD_NONE, fusb302_int_n_pin);
+}
 
-void mcu_hal::pd_ctrl_read(uint8_t reg, int data_len, uint8_t* data)
-{
+void mcu_hal::pd_ctrl_read(uint8_t reg, int data_len, uint8_t* data) {
     bool ack = i2c.read_data(fusb302_i2c_addr, reg, data_len, data);
     if (!ack)
         DEBUG_LOG("NACK read %d\r\n", reg);
 }
 
-void mcu_hal::pd_ctrl_write(uint8_t reg, int data_len, const uint8_t* data, bool end_with_stop)
-{
+void mcu_hal::pd_ctrl_write(uint8_t reg, int data_len, const uint8_t* data, bool end_with_stop) {
     bool ack = i2c.write_data(fusb302_i2c_addr, reg, data_len, data, end_with_stop);
     if (!ack)
         DEBUG_LOG("NACK write %d\r\n", reg);
 }
 
-bool mcu_hal::is_interrupt_asserted() { return gpio_get(fusb302_int_n_port, fusb302_int_n_pin) == 0; }
+bool mcu_hal::is_interrupt_asserted() {
+    return gpio_get(fusb302_int_n_port, fusb302_int_n_pin) == 0;
+}
 
-void mcu_hal::set_led(color c, uint32_t on, uint32_t off)
-{
+void mcu_hal::set_led(color c, uint32_t on, uint32_t off) {
     uint8_t cv = static_cast<uint8_t>(c);
 
     if ((cv & 0b100) != 0)
@@ -110,8 +110,7 @@ void mcu_hal::set_led(color c, uint32_t on, uint32_t off)
     led_timeout = millis() + (off != 0 ? on : 0x7fffffff);
 }
 
-void mcu_hal::update_led()
-{
+void mcu_hal::update_led() {
     if (!has_expired(led_timeout))
         return;
 
@@ -126,8 +125,7 @@ void mcu_hal::update_led()
     }
 }
 
-bool mcu_hal::has_button_been_pressed()
-{
+bool mcu_hal::has_button_been_pressed() {
     if (button_has_been_pressed) {
         button_has_been_pressed = false;
         return true;
@@ -144,9 +142,7 @@ bool mcu_hal::is_long_press() {
     return is_button_down && (millis() - last_button_change_time) > 700;
 }
 
-
-void mcu_hal::poll()
-{
+void mcu_hal::poll() {
     update_led();
 
     // check for button change
@@ -163,18 +159,23 @@ void mcu_hal::poll()
     }
 }
 
-uint32_t mcu_hal::millis() { return millis_count; }
+uint32_t mcu_hal::millis() {
+    return millis_count;
+}
 
-void mcu_hal::delay(uint32_t ms)
-{
+void mcu_hal::delay(uint32_t ms) {
     int32_t target_time = millis_count + ms;
     while (target_time - (int32_t)millis_count > 0)
         ;
 }
 
-bool mcu_hal::has_expired(uint32_t timeout) { return (int32_t)timeout - (int32_t)millis_count <= 0; }
+bool mcu_hal::has_expired(uint32_t timeout) {
+    return (int32_t)timeout - (int32_t)millis_count <= 0;
+}
 
 } // namespace usb_pd
 
 // System tick timer interrupt handler
-extern "C" void sys_tick_handler() { usb_pd::millis_count++; }
+extern "C" void sys_tick_handler() {
+    usb_pd::millis_count++;
+}

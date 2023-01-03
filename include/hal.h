@@ -25,7 +25,6 @@ enum class color {
     off = 0b111
 };
 
-
 /**
  * Hardware abstraction layer.
  *
@@ -85,29 +84,29 @@ struct mcu_hal {
 
     /**
      * Returns if the button has been pressed.
-     * 
+     *
      * Button presses are reported after the button has
      * been released.
-     * 
+     *
      * It will return 'true' once and then return 'false' until
      * the button has been released and pressed again.
-     * 
+     *
      * @return `true` if the button has been pressed
      */
     bool has_button_been_pressed();
 
     /**
      * Returns true if the button is currently being pressed.
-     * 
+     *
      * @return `true`  if the button is being pressed
      */
     bool is_button_being_pressed();
 
     /**
      * Returns if the button is being pressed for an extended period.
-     * 
+     *
      * Use to check for long press.
-     * 
+     *
      * @return `true` if the button is being pressed.
      */
     bool is_long_press();
@@ -139,7 +138,7 @@ struct mcu_hal {
      */
     bool has_expired(uint32_t timeout);
 
-private:
+  private:
     void update_led();
 
     color led_color;

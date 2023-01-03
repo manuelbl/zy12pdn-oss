@@ -46,12 +46,15 @@ constexpr uint32_t page_1_base_addr = eeprom_start_addr + page_size;
 
 int eeprom::num_keys_ = 0;
 
-static inline uint16_t read_uint16(uint32_t addr) { return *reinterpret_cast<volatile uint16_t*>(addr); }
+static inline uint16_t read_uint16(uint32_t addr) {
+    return *reinterpret_cast<volatile uint16_t*>(addr);
+}
 
-static inline uint32_t read_uint32(uint32_t addr) { return *reinterpret_cast<volatile uint32_t*>(addr); }
+static inline uint32_t read_uint32(uint32_t addr) {
+    return *reinterpret_cast<volatile uint32_t*>(addr);
+}
 
-void eeprom::init(int num_keys)
-{
+void eeprom::init(int num_keys) {
     num_keys_ = num_keys;
 
     uint16_t page_0_status = read_uint16(page_0_base_addr);
@@ -112,8 +115,7 @@ void eeprom::init(int num_keys)
     flash_lock();
 }
 
-bool eeprom::read(uint16_t key, uint16_t& value)
-{
+bool eeprom::read(uint16_t key, uint16_t& value) {
     uint32_t page_start_addr = find_valid_page(operation_e::read);
     if (page_start_addr == 0)
         return false;
@@ -130,8 +132,7 @@ bool eeprom::read(uint16_t key, uint16_t& value)
     return false;
 }
 
-bool eeprom::write(uint16_t key, uint16_t value)
-{
+bool eeprom::write(uint16_t key, uint16_t value) {
     flash_unlock();
 
     status_e status = append_key_value(key, value);
@@ -145,8 +146,7 @@ bool eeprom::write(uint16_t key, uint16_t value)
 }
 
 /// Returns the address of the page valid for the specified operation
-uint32_t eeprom::find_valid_page(operation_e operation)
-{
+uint32_t eeprom::find_valid_page(operation_e operation) {
     uint16_t page_0_status = read_uint16(page_0_base_addr);
     uint16_t page_1_status = read_uint16(page_1_base_addr);
 
@@ -188,8 +188,7 @@ uint32_t eeprom::find_valid_page(operation_e operation)
  * @param value value
  * @return status (`op_completed`, `page_full`, `no_valid_page`)
  */
-eeprom::status_e eeprom::append_key_value(uint16_t key, uint16_t value)
-{
+eeprom::status_e eeprom::append_key_value(uint16_t key, uint16_t value) {
     uint32_t page_start_addr = find_valid_page(operation_e::write);
     if (page_start_addr == 0)
         return status_e::no_valid_page;
@@ -210,8 +209,7 @@ eeprom::status_e eeprom::append_key_value(uint16_t key, uint16_t value)
 }
 
 /// Erases page 0 and 1 and marks page 0 as valid
-void eeprom::format()
-{
+void eeprom::format() {
     flash_erase_page(page_0_base_addr);
     flash_program_half_word(page_0_base_addr, page_status_valid);
     flash_erase_page(page_1_base_addr);
@@ -230,8 +228,7 @@ void eeprom::format()
  * @param value value
  * @return status (`op_completed`, `no_valid_page`)
  */
-eeprom::status_e eeprom::transfer_page(uint16_t key, uint16_t data)
-{
+eeprom::status_e eeprom::transfer_page(uint16_t key, uint16_t data) {
     uint32_t page_start_addr = find_valid_page(operation_e::read);
     if (page_start_addr == 0)
         return status_e::no_valid_page;
@@ -263,8 +260,7 @@ eeprom::status_e eeprom::transfer_page(uint16_t key, uint16_t data)
  *
  * @param skip_key key to skip
  */
-void eeprom::copy_slots(uint16_t skip_key)
-{
+void eeprom::copy_slots(uint16_t skip_key) {
     for (uint16_t k = 0; k < num_keys_; k++) {
         if (k == skip_key)
             continue;
