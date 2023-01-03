@@ -8,8 +8,7 @@
 // Debugging support (sending debugging messages to output)
 //
 
-#ifndef _pd_debug_h_
-#define _pd_debug_h_
+#pragma once
 
 #include <stdint.h>
 
@@ -28,14 +27,10 @@ void debug_init();
 
 #else
 
-#define DEBUG_LOG(MSG, VAL)                                                                                            \
-    do {                                                                                                               \
-    } while (false)
-
-#define DEBUG_INIT()                                                                                                   \
-    do {                                                                                                               \
-    } while (false)
+#define DEBUG_LOG(MSG, VAL) \
+    do { } while (false)
+#define DEBUG_INIT() \
+    do { } while (false)
 
 #endif
 
-#endif

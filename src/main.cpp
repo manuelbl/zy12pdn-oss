@@ -52,7 +52,7 @@ int main()
     DEBUG_INIT();
 
     // Read the configured mode
-    if (!nvs.read(nvs_voltage_key, &desired_mode))
+    if (!nvs.read(nvs_voltage_key, desired_mode))
         desired_mode = 0;
 
     DEBUG_LOG("Saved mode: %d\r\n", desired_mode);

@@ -24,7 +24,7 @@ static const char* VERSIONS = "????????ABCDEFGH";
 
 void fusb302::get_device_id(char* device_id_buf)
 {
-    uint8_t device_id = read_register(reg::device_id);
+    uint8_t device_id = read_register(reg_device_id);
     uint8_t version_id = device_id >> 4;
     uint8_t product_id = (device_id >> 2) & 0x03;
     uint8_t revision_id = device_id & 0x03;
@@ -39,19 +39,19 @@ void fusb302::get_device_id(char* device_id_buf)
 void fusb302::init()
 {
     // full reset
-    write_register(reg::reset, *(reg_reset::sw_res | reg_reset::pd_reset));
+    write_register(reg_reset, reset_sw_res | reset_pd_reset);
     hal.delay(10);
 
     // power up everyting except oscillator
-    write_register(reg::power, *(reg_power::pwr_all & ~reg_power::pwr_int_osc));
+    write_register(reg_power, power_pwr_all & ~power_pwr_int_osc);
     // Disable all CC monitoring
-    write_register(reg::switches0, *reg_switches0::none);
+    write_register(reg_switches0, switches0_none);
     // Mask all interrupts
-    write_register(reg::mask, *reg_mask::m_all);
+    write_register(reg_mask, mask_m_all);
     // Mask all interrupts
-    write_register(reg::maska, *reg_maska::m_all);
+    write_register(reg_maska, maska_m_all);
     // Mask all interrupts (incl. good CRC sent)
-    write_register(reg::maskb, *reg_maskb::m_all);
+    write_register(reg_maskb, maskb_m_all);
 
     next_message_id = 0;
     is_timeout_active = false;
@@ -67,7 +67,7 @@ void fusb302::start_sink()
     // could do it automatically.
 
     // BMC threshold: 1.35V with a threshold of 85mV
-    write_register(reg::slice, *reg_slice::sdac_hys_085mv | 0x20);
+    write_register(reg_slice, slice_sdac_hys_085mv | 0x20);
 
     start_measurement(1);
 }
@@ -91,20 +91,20 @@ void fusb302::poll()
 
 void fusb302::start_measurement(int cc)
 {
-    reg_switches0 sw0 = cc == 1 ? reg_switches0::meas_cc1 : reg_switches0::meas_cc2;
-    sw0 = sw0 | reg_switches0::pdwn1 | reg_switches0::pdwn2;
+    uint8_t sw0 = cc == 1 ? switches0_meas_cc1 : switches0_meas_cc2;
+    sw0 = sw0 | switches0_pdwn1 | switches0_pdwn2;
 
     // test CC
-    write_register(reg::switches0, *sw0);
+    write_register(reg_switches0, sw0);
     start_timeout(10);
     measuring_cc = cc;
 }
 
 void fusb302::check_measurement()
 {
-    read_register(reg::status0);
-    reg_status0 status0 = static_cast<reg_status0>(read_register(reg::status0));
-    if (*(status0 & reg_status0::bc_lvl_mask) == 0) {
+    read_register(reg_status0);
+    uint8_t status0 = read_register(reg_status0);
+    if ((status0 & status0_bc_lvl_mask) == 0) {
         // No CC activity
         start_measurement(measuring_cc == 1 ? 2 : 1);
         return;
@@ -118,33 +118,33 @@ void fusb302::check_for_interrupts()
 {
     bool may_have_message = false;
 
-    reg_interrupt interrupt = static_cast<reg_interrupt>(read_register(reg::interrupt));
-    reg_interrupta interrupta = static_cast<reg_interrupta>(read_register(reg::interrupta));
-    reg_interruptb interruptb = static_cast<reg_interruptb>(read_register(reg::interruptb));
+    uint8_t interrupt = read_register(reg_interrupt);
+    uint8_t interrupta = read_register(reg_interrupta);
+    uint8_t interruptb = read_register(reg_interruptb);
 
-    if (*(interrupta & reg_interrupta::i_hardrst) != 0) {
+    if ((interrupta & interrupta_i_hardrst) != 0) {
         DEBUG_LOG("%lu: Hard reset\r\n", hal.millis());
         establish_retry_wait();
         return;
     }
-    if (*(interrupta & reg_interrupta::i_retryfail) != 0) {
+    if ((interrupta & interrupta_i_retryfail) != 0) {
         DEBUG_LOG("Retry failed\r\n", 0);
     }
-    if (*(interrupta & reg_interrupta::i_txsent) != 0) {
+    if ((interrupta & interrupta_i_txsent) != 0) {
         DEBUG_LOG("TX ack\r\n", 0);
         // turn off internal oscillator if TX FIFO is empty
-        reg_status1 status1 = static_cast<reg_status1>(read_register(reg::status1));
-        if (*(status1 & reg_status1::tx_empty) != 0)
-            write_register(reg::power, *(reg_power::pwr_all & ~reg_power::pwr_int_osc));
+        uint8_t status1 = read_register(reg_status1);
+        if ((status1 & status1_tx_empty) != 0)
+            write_register(reg_power, power_pwr_all & ~power_pwr_int_osc);
     }
-    if (*(interrupt & reg_interrupt::i_activity) != 0) {
+    if ((interrupt & interrupt_i_activity) != 0) {
         may_have_message = true;
     }
-    if (*(interrupt & reg_interrupt::i_crc_chk) != 0) {
+    if ((interrupt & interrupt_i_crc_chk) != 0) {
         // DEBUG_LOG("%lu: CRC ok\r\n", hal.millis());
         may_have_message = true;
     }
-    if (*(interruptb & reg_interruptb::i_gcrcsent) != 0) {
+    if ((interruptb & interruptb_i_gcrcsent) != 0) {
         // DEBUG_LOG("Good CRC sent\r\n", 0);
         may_have_message = true;
     }
@@ -155,18 +155,18 @@ void fusb302::check_for_interrupts()
 void fusb302::check_for_msg()
 {
     while (true) {
-        reg_status1 status1 = static_cast<reg_status1>(read_register(reg::status1));
-        if ((status1 & reg_status1::rx_empty) == reg_status1::rx_empty)
+        uint8_t status1 = read_register(reg_status1);
+        if ((status1 & status1_rx_empty) == status1_rx_empty)
             break;
 
         uint16_t header;
         uint8_t* payload = rx_message_buf[rx_message_index];
         read_message(header, payload);
 
-        reg_status0 status0 = static_cast<reg_status0>(read_register(reg::status0));
-        if (*(status0 & reg_status0::crc_chk) == 0) {
+        uint8_t status0 = read_register(reg_status0);
+        if ((status0 & status0_crc_chk) == 0) {
             DEBUG_LOG("Invalid CRC\r\n", 9);
-        } else if (pd_header::message_type(header) == pd_msg_type::ctrl_good_crc) {
+        } else if (pd_header::message_type(header) == pd_msg_type_ctrl_good_crc) {
             DEBUG_LOG("Good CRC packet\r\n", 9);
         } else {
             if (state_ != fusb302_state::usb_pd)
@@ -198,22 +198,22 @@ void fusb302::establish_usb_pd_wait(int cc)
     hal.init_int_n();
 
     // Enable automatic retries
-    write_register(reg::control3, *(reg_control3::auto_retry | reg_control3::_3_retries));
+    write_register(reg_control3, control3_auto_retry | control3_3_retries);
     // Enable interrupts for CC activity and CRC_CHK
-    write_register(reg::mask, *(reg_mask::m_all & ~(reg_mask::m_activity | reg_mask::m_crc_chk)));
+    write_register(reg_mask, mask_m_all & ~(mask_m_activity | mask_m_crc_chk));
     // Unmask all interrupts (toggle done, hard reset, tx sent etc.)
-    write_register(reg::maska, *reg_maska::m_none);
+    write_register(reg_maska, maska_m_none);
     // Enable good CRC sent interrupt
-    write_register(reg::maskb, *reg_maskb::m_none);
+    write_register(reg_maskb, maskb_m_none);
     // Enable pull down and CC monitoring
-    write_register(reg::switches0,
-        *(reg_switches0::pdwn1 | reg_switches0::pdwn2 | (cc == 1 ? reg_switches0::meas_cc1 : reg_switches0::meas_cc2)));
+    write_register(reg_switches0,
+        switches0_pdwn1 | switches0_pdwn2 | (cc == 1 ? switches0_meas_cc1 : switches0_meas_cc2));
     // Configure: auto CRC and BMC transmit on CC pin
-    write_register(reg::switches1,
-        *(reg_switches1::specrev_rev_2_0 | reg_switches1::auto_crc
-            | (cc == 1 ? reg_switches1::txcc1 : reg_switches1::txcc2)));
+    write_register(reg_switches1,
+        switches1_specrev_rev_2_0 | switches1_auto_crc
+            | (cc == 1 ? switches1_txcc1 : switches1_txcc2));
     // Enable interrupt
-    write_register(reg::control0, *reg_control0::none);
+    write_register(reg_control0, control0_none);
 
     state_ = fusb302_state::usb_pd_wait;
     start_timeout(300);
@@ -256,12 +256,12 @@ uint8_t fusb302::read_message(uint16_t& header, uint8_t* payload)
 {
     // Read token and header
     uint8_t buf[3];
-    hal.pd_ctrl_read(static_cast<uint8_t>(reg::fifos), 3, buf);
+    hal.pd_ctrl_read(reg_fifos, 3, buf);
 
     // Check for SOP token
     if ((buf[0] & 0xe0) != 0xe0) {
         // Flush RX FIFO
-        write_register(reg::control1, *reg_control1::rx_flush);
+        write_register(reg_control1, control1_rx_flush);
         return 0;
     }
 
@@ -271,7 +271,7 @@ uint8_t fusb302::read_message(uint16_t& header, uint8_t* payload)
 
     // Get payload and CRC length
     uint8_t len = pd_header::num_data_objs(header) * 4;
-    hal.pd_ctrl_read(static_cast<uint8_t>(reg::fifos), len + 4, payload);
+    hal.pd_ctrl_read(reg_fifos, len + 4, payload);
 
     return len;
 }
@@ -285,7 +285,7 @@ void fusb302::send_header_message(pd_msg_type msg_type)
 void fusb302::send_message(uint16_t header, const uint8_t* payload)
 {
     // Enable internal oscillator
-    write_register(reg::power, *reg_power::pwr_all);
+    write_register(reg_power, power_pwr_all);
 
     int payload_len = pd_header::num_data_objs(header) * 4;
     header |= (next_message_id << 9);
@@ -293,43 +293,43 @@ void fusb302::send_message(uint16_t header, const uint8_t* payload)
     uint8_t buf[40];
 
     // Create token stream
-    buf[0] = *token::sop1;
-    buf[1] = *token::sop1;
-    buf[2] = *token::sop1;
-    buf[3] = *token::sop2;
-    buf[4] = *token::packsym | static_cast<uint8_t>(payload_len + 2);
+    buf[0] = token_sop1;
+    buf[1] = token_sop1;
+    buf[2] = token_sop1;
+    buf[3] = token_sop2;
+    buf[4] = static_cast<uint8_t>(token_packsym | (payload_len + 2));
     buf[5] = header & 0xff;
     buf[6] = header >> 8;
     if (payload_len > 0)
         memcpy(buf + 7, payload, payload_len);
     int n = 7 + payload_len;
-    buf[n++] = *token::jam_crc;
-    buf[n++] = *token::eop;
-    buf[n++] = *token::txoff;
-    buf[n++] = *token::txon;
+    buf[n++] = token_jam_crc;
+    buf[n++] = token_eop;
+    buf[n++] = token_txoff;
+    buf[n++] = token_txon;
 
-    hal.pd_ctrl_write(static_cast<uint8_t>(reg::fifos), n, buf);
+    hal.pd_ctrl_write(reg_fifos, n, buf);
 
     next_message_id++;
     if (next_message_id == 8)
         next_message_id = 0;
 }
 
-uint8_t fusb302::read_register(reg reg_addr)
+uint8_t fusb302::read_register(reg r)
 {
     uint8_t val;
-    hal.pd_ctrl_read(static_cast<uint8_t>(reg_addr), 1, &val);
+    hal.pd_ctrl_read(r, 1, &val);
     return val;
 }
 
-void fusb302::read_registers(reg start_addr, int n, uint8_t* target)
+void fusb302::read_registers(reg start_reg, int n, uint8_t* target)
 {
-    hal.pd_ctrl_read(static_cast<uint8_t>(start_addr), n, target);
+    hal.pd_ctrl_read(start_reg, n, target);
 }
 
-void fusb302::write_register(reg reg_addr, uint8_t value)
+void fusb302::write_register(reg r, uint8_t value)
 {
-    hal.pd_ctrl_write(static_cast<uint8_t>(reg_addr), 1, &value);
+    hal.pd_ctrl_write(r, 1, &value);
 }
 
 } // namespace usb_pd

@@ -8,8 +8,7 @@
 // Hardware abstraction layer
 //
 
-#ifndef _hal_h_
-#define _hal_h_
+#pragma once
 
 #include <stdint.h>
 
@@ -26,7 +25,6 @@ enum class color {
     off = 0b111
 };
 
-inline uint8_t operator*(color c) { return static_cast<uint8_t>(c); }
 
 /**
  * Hardware abstraction layer.
@@ -157,5 +155,3 @@ private:
 extern mcu_hal hal;
 
 } // namespace usb_pd
-
-#endif

@@ -68,19 +68,19 @@ void pd_sink::handle_msg(uint16_t header, const uint8_t* payload)
 
     pd_msg_type type = pd_header::message_type(header);
     switch (type) {
-    case pd_msg_type::data_source_capabilities:
+    case pd_msg_type_data_source_capabilities:
         handle_src_cap_msg(header, payload);
         break;
-    case pd_msg_type::ctrl_accept:
+    case pd_msg_type_ctrl_accept:
         notify(callback_event::power_accepted);
         break;
-    case pd_msg_type::ctrl_reject:
+    case pd_msg_type_ctrl_reject:
         requested_voltage = 0;
         requested_max_current = 0;
         selected_pps_index = -1;
         notify(callback_event::power_rejected);
         break;
-    case pd_msg_type::ctrl_ps_ready:
+    case pd_msg_type_ctrl_ps_ready:
         active_voltage = requested_voltage;
         active_max_current = requested_max_current;
         requested_voltage = 0;
@@ -223,7 +223,7 @@ int pd_sink::request_power_from_capability(int index, int voltage, int max_curre
         next_pps_request = hal.millis() + 8000;
     }
 
-    uint16_t header = pd_header::create_data(pd_msg_type::data_request, 1, spec_rev);
+    uint16_t header = pd_header::create_data(pd_msg_type_data_request, 1, spec_rev);
 
     // Send message
     pd_controller.send_message(header, payload);

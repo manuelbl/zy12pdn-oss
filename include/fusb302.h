@@ -9,8 +9,7 @@
 // and decoding/encoding of messages.
 //
 
-#ifndef _fusb302_h_
-#define _fusb302_h_
+#pragma once
 
 #include "fusb302_regs.h"
 #include "hal.h"
@@ -20,7 +19,7 @@
 namespace usb_pd {
 
 /// FUSB302 state
-enum class fusb302_state : uint8_t {
+enum class fusb302_state {
     /// VBUS is present, monitoring for activity on CC1/CC2
     usb_20,
     /// Activity on CC1/CC2 has been detected, waiting for first USB PD message
@@ -32,7 +31,7 @@ enum class fusb302_state : uint8_t {
 };
 
 /// Event kind
-enum class event_kind : uint8_t { none, state_changed, message_received };
+enum class event_kind { none, state_changed, message_received };
 
 /// Event queue by FUSB302 instance for clients (such as `pd_sink`)
 struct event {
@@ -45,20 +44,15 @@ struct event {
     /// Message payload (valid if event_kind = `message_received`, possibly `null`)
     const uint8_t* msg_payload;
 
-    event()
-        : kind(event_kind::none)
-    {
-    }
-    event(event_kind evt_kind)
-        : kind(evt_kind)
-    {
-    }
+    event() : kind(event_kind::none) { }
+
+    event(event_kind evt_kind) : kind(evt_kind) { }
+
     event(uint16_t header, const uint8_t* payload = nullptr)
         : kind(event_kind::message_received)
         , msg_header(header)
         , msg_payload(payload)
-    {
-    }
+    { }
 };
 
 /**
@@ -141,13 +135,13 @@ private:
     uint8_t read_message(uint16_t& header, uint8_t* payload);
 
     /// Reads the value of the specified register.
-    uint8_t read_register(reg reg_addr);
+    uint8_t read_register(reg r);
 
     /// Reads the values of several consecutive registers.
     void read_registers(reg start_addr, int n, uint8_t* target);
 
     /// Write a value to the specified register.
-    void write_register(reg reg_addr, uint8_t value);
+    void write_register(reg r, uint8_t value);
 
     /// cc line being measured
     int measuring_cc = 0;
@@ -177,5 +171,3 @@ private:
 };
 
 } // namespace usb_pd
-
-#endif

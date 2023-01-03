@@ -8,8 +8,7 @@
 // EEPROM emulation according to AN4061
 //
 
-#ifndef _eeprom_h_
-#define _eeprom_h_
+#pragma once
 
 #include <stdint.h>
 
@@ -40,7 +39,7 @@ struct eeprom {
      * @param value reference to variable receiving value
      * @return `true` if value was found, `false` otherwise
      */
-    static bool read(uint16_t key, uint16_t* value);
+    static bool read(uint16_t key, uint16_t& value);
 
     /**
      * Writes a 16 bit value for the specified key.
@@ -51,12 +50,12 @@ struct eeprom {
      */
     static bool write(uint16_t key, uint16_t value);
 
-    static int num_keys_;
-
 private:
     enum class status_e { no_valid_page, page_full, op_completed };
 
     enum class operation_e { read, write };
+
+    static int num_keys_;
 
     static void format();
     static status_e append_key_value(uint16_t key, uint16_t value);
@@ -66,5 +65,3 @@ private:
 };
 
 } // namespace usb_pd
-
-#endif

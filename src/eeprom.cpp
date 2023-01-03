@@ -112,7 +112,7 @@ void eeprom::init(int num_keys)
     flash_lock();
 }
 
-bool eeprom::read(uint16_t key, uint16_t* value)
+bool eeprom::read(uint16_t key, uint16_t& value)
 {
     uint32_t page_start_addr = find_valid_page(operation_e::read);
     if (page_start_addr == 0)
@@ -121,7 +121,7 @@ bool eeprom::read(uint16_t key, uint16_t* value)
     // Read slots from the back (the latest matching entry is the valid one)
     for (uint32_t slot = page_start_addr + page_size - 4; slot > page_start_addr; slot -= 4) {
         if (read_uint16(slot) == key) {
-            *value = read_uint16(slot + 2);
+            value = read_uint16(slot + 2);
             return true;
         }
     }
@@ -270,7 +270,7 @@ void eeprom::copy_slots(uint16_t skip_key)
             continue;
 
         uint16_t value;
-        if (eeprom::read(k, &value))
+        if (eeprom::read(k, value))
             append_key_value(k, value);
     }
 }

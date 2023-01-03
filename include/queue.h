@@ -8,6 +8,8 @@
 // FIFO queue
 //
 
+#pragma once
+
 #include <utility>
 
 namespace usb_pd {
@@ -58,11 +60,7 @@ public:
 };
 
 template <class T, int N>
-queue<T, N>::queue()
-    : buf_head(0)
-    , buf_tail(0)
-{
-}
+queue<T, N>::queue() : buf_head(0), buf_tail(0) { }
 
 template <class T, int N> int queue<T, N>::avail_items()
 {

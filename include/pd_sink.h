@@ -8,15 +8,14 @@
 // USB PD sink handling PD messages and state changes
 //
 
-#ifndef _pd_sink_h_
-#define _pd_sink_h_
+#pragma once
 
 #include "fusb302.h"
 
 namespace usb_pd {
 
 /// Power supply type
-enum class pd_supply_type : uint8_t {
+enum class pd_supply_type {
     /// Fixed supply (Vmin = Vmax)
     fixed = 0,
     /// Battery
@@ -185,5 +184,3 @@ private:
 };
 
 } // namespace usb_pd
-
-#endif

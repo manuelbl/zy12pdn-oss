@@ -86,17 +86,19 @@ bool mcu_hal::is_interrupt_asserted() { return gpio_get(fusb302_int_n_port, fusb
 
 void mcu_hal::set_led(color c, uint32_t on, uint32_t off)
 {
-    if ((*c & 0b100) != 0)
+    uint8_t cv = static_cast<uint8_t>(c);
+
+    if ((cv & 0b100) != 0)
         gpio_set(led_red_port, led_red_pin);
     else
         gpio_clear(led_red_port, led_red_pin);
 
-    if ((*c & 0b010) != 0)
+    if ((cv & 0b010) != 0)
         gpio_set(led_green_port, led_green_pin);
     else
         gpio_clear(led_green_port, led_green_pin);
 
-    if ((*c & 0b001) != 0)
+    if ((cv & 0b001) != 0)
         gpio_set(led_blue_port, led_blue_pin);
     else
         gpio_clear(led_blue_port, led_blue_pin);

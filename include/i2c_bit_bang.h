@@ -7,8 +7,7 @@
 // I2C bit banging
 //
 
-#ifndef _i2c_bit_bang_h_
-#define _i2c_bit_bang_h_
+#pragma once
 
 #include <libopencm3/stm32/gpio.h>
 
@@ -44,5 +43,3 @@ struct i2c_bit_bang {
 };
 
 } // namespace usb_pd
-
-#endif
