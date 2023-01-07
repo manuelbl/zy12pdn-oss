@@ -50,6 +50,8 @@ void mcu_hal::init() {
     systick_clear();
     systick_counter_enable();
 
+    DEBUG_INIT();
+
     // Initialize LED
     gpio_mode_setup(led_red_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, led_red_pin);
     gpio_mode_setup(led_green_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, led_green_pin);

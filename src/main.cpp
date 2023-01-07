@@ -6,10 +6,7 @@
 // https://opensource.org/licenses/MIT
 //
 
-#include <libopencm3/stm32/gpio.h>
-
 #include "eeprom.h"
-#include "hal.h"
 #include "pd_debug.h"
 #include "pd_sink.h"
 
@@ -48,7 +45,6 @@ int main() {
     hal.init();
     hal.set_led(color::blue, 800, 600);
     nvs.init(3);
-    DEBUG_INIT();
 
     // Read the configured mode
     if (!nvs.read(nvs_voltage_key, desired_mode))
