@@ -165,8 +165,9 @@ void on_source_caps_changed() {
     } else {
         // Search for desried voltage
         for (int i = 0; i < power_sink.num_source_caps; i++) {
-            if (power_sink.source_caps[i].voltage == desired_mode * 1000)
-                voltage = power_sink.source_caps[i].voltage;
+            if (power_sink.source_caps[i].min_voltage <= desired_mode * 1000
+                && power_sink.source_caps[i].voltage >= desired_mode * 1000)
+                voltage = desired_mode * 1000;
         }
     }
 
