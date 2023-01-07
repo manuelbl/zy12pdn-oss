@@ -43,7 +43,7 @@ void fusb302::init() {
     // power up everyting except oscillator
     write_register(reg_power, power_pwr_all & ~power_pwr_int_osc);
     // Disable all CC monitoring
-    write_register(reg_switches0, switches0_pdwn1 | switches0_pdwn2);
+    write_register(reg_switches0, switches0_none);
     // Mask all interrupts
     write_register(reg_mask, mask_m_all);
     // Mask all interrupts
