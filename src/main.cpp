@@ -40,6 +40,8 @@ static void loop();
 static void run_config_mode();
 static void set_led_prog_mode(int mode);
 static void save_mode(int mode);
+static int mode_to_voltage(int mode);
+static int voltage_to_mode(int voltage);
 
 int main() {
     hal.init();
@@ -226,7 +228,8 @@ void run_config_mode() {
 
     DEBUG_LOG("Configuration mode\r\n", 0);
 
-    int mode = 0;
+    int mode = voltage_to_mode(desired_mode);
+
     set_led_prog_mode(mode);
 
     while (true) {
@@ -253,10 +256,23 @@ void set_led_prog_mode(int mode) {
     hal.set_led(colors[mode], 80, 40);
 }
 
+static const uint16_t voltages[] = {0, 9, 12, 15, 20, 100};
+
+int mode_to_voltage(int mode) {
+    return voltages[mode];
+}
+
+int voltage_to_mode(int voltage) {
+    for (int i = 0; i < static_cast<int>(sizeof(voltages) / sizeof(voltages[0])); i++) {
+        if (voltages[i] == voltage)
+            return i;
+    }
+    return 0;
+}
+
 // Save selected mode in non-volatile storage
 void save_mode(int mode) {
-    const uint16_t voltages[] = {0, 9, 12, 15, 20, 100};
-    nvs.write(nvs_voltage_key, voltages[mode]);
+    nvs.write(nvs_voltage_key, mode_to_voltage(mode));
     hal.set_led(color::off);
 
     while (true)

@@ -20,11 +20,11 @@ See [Build and upload](https://github.com/manuelbl/zy12pdn-oss/wiki/Build-and-up
 
 The user interface – if it can be called so – is similar to the original ZY12PDN. The board can work in one of three modes:
 
-- **Interactive mode**: By pressing the button, the board switches between available voltages.
-- **Fixed voltage mode**: The board provides a configured voltage. If the configured voltage is not available, the board will output 5V.
+- **Interactive mode**: By pressing the button, the board switches between the available fixed voltages.
+- **Fixed voltage mode**: The board supplies a configured voltage. If the configured voltage is not available, the board will output 5V.
 - **Configuration mode**: By pressing the button, either the interactive mode or one of the fixed voltage modes is selected.
 
-The LED color indicates either the active voltage (interactive and fixed voltage mode) or the desired voltage (configuration mode).
+The LED color indicates either the active voltage (in interactive and fixed voltage modes) or the desired voltage (in configuration mode, with a flashing LED).
 
 
 | Color  | Interactive | Fixed Voltage | Configuration |
@@ -39,13 +39,18 @@ The LED color indicates either the active voltage (interactive and fixed voltage
 
 *† The LED will also blink in red if the board has been configured for the highest available voltage and the highest available voltage is neither 9V, 12V, 15V nor 20V.*
 
+
 ### Configuring the Board
 
 The configuration mode is entered by plugging in the board while pressing the button. The LED will initially flash quickly in cyan until the button is released. Then it continues to flash to indicate the configuration mode.
 
 The mode can be selected by pressing the button until the desired voltage or mode (see table above) has been selected. To save the configuration, the button must be pressed for a longer period until the LED goes off. While in configuration mode, the output voltage remains at 5V.
 
-*Note: Even if a fixed voltage above 5V has been selected and the selected voltage can be provided by the power supply, the supply will initially proivde 5V until the target voltage has been successfully negotiated. 5V is also provided at the output of the ZY12PDN board as it is passed through directly. There is no switch (or MOSFET) in between.*
+### Notes on Fixed Voltages
+
+*Even if a fixed voltage above 5V has been selected and the selected voltage can be provided by the power supply, the supply will initially provide 5V until the target voltage has been successfully negotiated. 5V is also provided at the output of the ZY12PDN board as it is passed through directly. There is no switch (or MOSFET) in between.*
+
+*If a fixed voltage has been configured and the power supply does not offer it as a fixed voltage but can supply it as part of a PPS (programmable power supply) capability, the PPS capability will used. This feature enables 12V on a number of power supply not offering 12V as a fixed voltage.*
 
 
 ## Documentation
@@ -61,6 +66,8 @@ Additional documentation can be found in the [Wiki](https://github.com/manuelbl/
 - [Software implementation notes](https://github.com/manuelbl/zy12pdn-oss/wiki/Implementation-notes)
 
 - [Build and Uplaod](https://github.com/manuelbl/zy12pdn-oss/wiki/Build-and-upload)
+
+- [Modify the firmware](https://github.com/manuelbl/zy12pdn-oss/wiki/Modify-the-firmware)
 
 - [Debugging hints](https://github.com/manuelbl/zy12pdn-oss/wiki/Debugging-hints)
 
