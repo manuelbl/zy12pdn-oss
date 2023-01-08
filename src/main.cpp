@@ -70,8 +70,12 @@ int main() {
     update_led();
 
     // Work in regular loop
-    while (true)
+    while (true) {
         loop();
+
+        // sleep until something happens
+        hal.wait_for_event();
+    }
 }
 
 // Regular operations loop

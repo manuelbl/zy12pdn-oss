@@ -118,6 +118,14 @@ struct mcu_hal {
     void poll();
 
     /**
+     * Sleep until an event occurs.
+     * 
+     * In practice, it will sleep until a SYSTICK interrupt (once every ms)
+     * or an EXTI interrupt (on FUSB302 interrupt line) occurs.
+     */
+    void wait_for_event();
+
+    /**
      * Returns time stamp.
      *
      * @return number of milliseconds since a fixed time in the past.

@@ -10,7 +10,10 @@
 
 #include "hal.h"
 
+#include <libopencmsis/core_cm3.h>
+#include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
+#include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 
@@ -22,6 +25,7 @@ namespace usb_pd {
 constexpr auto fusb302_int_n_port = GPIOA;
 constexpr uint16_t fusb302_int_n_pin = GPIO13;
 constexpr uint8_t fusb302_i2c_addr = 0x22;
+constexpr uint8_t fusb302_int_n_irq = NVIC_EXTI4_15_IRQ;
 
 constexpr auto led_red_port = GPIOA;
 constexpr uint16_t led_red_pin = GPIO5;
@@ -68,7 +72,22 @@ void mcu_hal::init() {
 }
 
 void mcu_hal::init_int_n() {
+    // configure FUSB302 interrupt line
     gpio_mode_setup(fusb302_int_n_port, GPIO_MODE_INPUT, GPIO_PUPD_NONE, fusb302_int_n_pin);
+
+    // enable interrupt (so the MCU wakes)
+	nvic_enable_irq(fusb302_int_n_irq);
+    uint32_t exti = fusb302_int_n_pin; // EXIT and GPIO use same bit mask
+    exti_select_source(exti, fusb302_int_n_port);
+    exti_set_trigger(exti, EXTI_TRIGGER_FALLING);
+    exti_enable_request(exti);
+}
+
+extern "C" void exti4_15_isr(void) {
+    uint32_t exti = fusb302_int_n_pin; // EXIT and GPIO use same bit mask
+	exti_reset_request(exti);
+
+    // nothing to do; just used to wake up MCU
 }
 
 void mcu_hal::pd_ctrl_read(uint8_t reg, int data_len, uint8_t* data) {
@@ -159,6 +178,10 @@ void mcu_hal::poll() {
         is_button_down = is_down;
         last_button_change_time = millis();
     }
+}
+
+void mcu_hal::wait_for_event() {
+    __WFI();
 }
 
 uint32_t mcu_hal::millis() {
