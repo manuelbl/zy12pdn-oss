@@ -98,20 +98,16 @@ struct pd_sink {
      * or `rejected` if unsucessful. Separate events will be triggered for these
      * messages.
      *
-     * If the source hasn't advertised a matching voltage, no message is sent and
-     * -1 is returned.
+     * If the source hasn't advertised a matching voltage, -1 is returned without
+     * requesting a voltage.
      *
-     * If a programmable power supply (PPS) capability is selected, the sink starts
-     * to send a `request` message every 8 seconds as required by the standard.
-     * Otherwise, the source will revert to 5V after 10 seconds.
-     *
-     * If the sink draws more power the specified maximum current, a PPS capability will
+     * If the sink draws more power than indicated by `max_current`, a PPS capability will
      * reduce the voltage until the current is no longer exceeded. A fixed supply uses
      * the specified current to distribute the current between multiple outputs. If
      * exceed, it might revert to 5V or stop supplying power altogether.
      *
      * @param voltage the desired voltage (in mV)
-     * @param max_current the highest current (in mA) the sink will draw,
+     * @param max_current the maximum current (in mA) the sink will draw,
      *   or 0 for the maximum current the source can provide for the selected voltage
      * @return index of selected source capability, or -1 if no matching voltage was found.
      */
@@ -125,9 +121,10 @@ struct pd_sink {
      * messages.
      *
      * If the specified voltage or current is out of the range for the specified
-     * source capability or if the index is invalid, no request is sent and -1 is returned.
+     * source capability or if the index is invalid, -1 is returned without
+     * requesting a voltage.
      *
-     * If the sink draws more power the specified maximum current, a PPS capability will
+     * If the sink draws more power than the specified maximum current, a PPS capability will
      * reduce the voltage until the current is no longer exceeded. A fixed supply uses
      * the specified current to distribute the current between multiple outputs. If
      * exceed, it might revert to 5V or stop supplying power altogether.
