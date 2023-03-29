@@ -18,7 +18,7 @@ void i2c_bit_bang::init() {
     // Therefore, clock stretching is not supported.
     gpio_set(scl_port, scl_pin);
     gpio_mode_setup(scl_port, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, scl_pin);
-    gpio_set_output_options(sda_port, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, sda_pin);
+    gpio_set_output_options(scl_port, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, scl_pin);
 
     // SDA is configured as open-drain, so it's only driven on low.
     gpio_clear(sda_port, sda_pin);
