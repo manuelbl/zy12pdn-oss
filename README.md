@@ -18,6 +18,8 @@ See [Build and upload](https://github.com/manuelbl/zy12pdn-oss/wiki/Build-and-up
 
 ## Usage Instructions
 
+This open-source software provides similar features as the closed-source ones (there are multiple version). It allows to toggle between different voltages and to configure a fixed voltage. As a special feature, it can trigger 12V if the power supply does not provide it as a regular voltage but only through PPS (a range of freely programmable voltages).
+
 The user interface – if it can be called so – is similar to the original ZY12PDN. The board can work in one of three modes:
 
 - **Interactive mode**: By pressing the button, the board switches between the available fixed voltages.
